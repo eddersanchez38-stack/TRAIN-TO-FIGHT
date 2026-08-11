@@ -1,191 +1,144 @@
---[[
-    EDER2302 AND TOCINACIO23021 PROYECT
-    Train to Fight - Full Hub
-    Compatible Delta
-]]
+-- EDER2302 × TOCINACIO23021 | Train to Fight Hub
+-- Versión estable para Delta
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("ReplicatedStorage")
+local TS = game:GetService("TweenService")
+local SG = game:GetService("StarterGui")
 
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HRP = Character:WaitForChild("HumanoidRootPart")
+local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
 
-LocalPlayer.CharacterAdded:Connect(function(char)
-    Character = char
-    Humanoid = char:WaitForChild("Humanoid")
-    HRP = char:WaitForChild("HumanoidRootPart")
-end)
+local Char, Hum, HRP
+local function GetChar()
+    Char = LP.Character or LP.CharacterAdded:Wait()
+    Hum = Char:WaitForChild("Humanoid")
+    HRP = Char:WaitForChild("HumanoidRootPart")
+end
+GetChar()
+LP.CharacterAdded:Connect(GetChar)
 
--- Variables
-local FlyEnabled = false
-local FlySpeed = 50
-local FlyConnection
-local FastTrainEnabled = false
-local FastTrainConnections = {}
-local WalkSpeedEnabled = false
-local AutoPlayersEnabled = false
-local ClickTPEnabled = false
-local WalkSpeedValue = 16
-
--- Attack Remote
-local AttackRemote = ReplicatedStorage:WaitForChild("Ability"):WaitForChild("Remote"):WaitForChild("ApplyCastAbility")
+-- Estados
+local FastTrainOn = false
+local FlyOn = false
+local SpeedOn = false
+local AutoOn = false
+local TPOn = false
+local SpeedVal = 16
+local FTCons = {}
+local FlyCon
 
 -------------------------------------------------
 -- SISTEMAS
 -------------------------------------------------
-
--- Fast Train
-local function FastTrain()
+local function DoFastTrain()
     pcall(function()
-        local TE = ReplicatedStorage:FindFirstChild("TrainEquipment")
-        local TS = ReplicatedStorage:FindFirstChild("TrainSystem")
-        if not TE or not TS then return end
-        local ER = TE:FindFirstChild("Remote")
-        local SR = TS:FindFirstChild("Remote")
-        if not ER or not SR then return end
+        local te = RS:FindFirstChild("TrainEquipment")
+        local ts = RS:FindFirstChild("TrainSystem")
+        if not (te and ts) then return end
+        local er = te:FindFirstChild("Remote")
+        local sr = ts:FindFirstChild("Remote")
+        if not (er and sr) then return end
 
-        local Stationary = ER:FindFirstChild("ApplyStationaryTrain")
-        local Mobile = ER:FindFirstChild("ApplyMobileTrain")
-        local Speed = SR:FindFirstChild("TrainSpeedHasChanged")
-        local Frenzy = SR:FindFirstChild("ApplyAddFrenzyValue")
+        local a = er:FindFirstChild("ApplyStationaryTrain")
+        local b = er:FindFirstChild("ApplyMobileTrain")
+        local c = sr:FindFirstChild("TrainSpeedHasChanged")
+        local d = sr:FindFirstChild("ApplyAddFrenzyValue")
 
-        if Stationary then Stationary:InvokeServer(math.huge) end
-        if Mobile then Mobile:InvokeServer(math.huge) end
-        if Speed then
-            Speed:FireServer(math.huge)
-            Speed:FireServer(math.huge)
-        end
-        if Frenzy then
-            Frenzy:InvokeServer(10000)
-            Frenzy:FireServer(math.huge)
-        end
+        if a then a:InvokeServer(math.huge) end
+        if b then b:InvokeServer(math.huge) end
+        if c then c:FireServer(math.huge) c:FireServer(math.huge) end
+        if d then d:InvokeServer(10000) d:FireServer(math.huge) end
     end)
 end
 
--- Fly
 local function StartFly()
-    if FlyConnection then FlyConnection:Disconnect() end
-    FlyEnabled = true
+    if FlyCon then FlyCon:Disconnect() end
+    FlyOn = true
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+    bv.Velocity = Vector3.zero
+    bv.Parent = HRP
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+    bg.P = 9e4
+    bg.Parent = HRP
 
-    local BV = Instance.new("BodyVelocity")
-    BV.Velocity = Vector3.zero
-    BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    BV.Parent = HRP
+    local keys = {}
+    local kd = UIS.InputBegan:Connect(function(i,g) if not g then keys[i.KeyCode]=true end end)
+    local ku = UIS.InputEnded:Connect(function(i) keys[i.KeyCode]=false end)
 
-    local BG = Instance.new("BodyGyro")
-    BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    BG.P = 90000
-    BG.Parent = HRP
-
-    local Keys = {}
-    local KD = UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        Keys[input.KeyCode] = true
-    end)
-    local KU = UserInputService.InputEnded:Connect(function(input)
-        Keys[input.KeyCode] = false
-    end)
-
-    FlyConnection = RunService.RenderStepped:Connect(function()
+    FlyCon = RunService.RenderStepped:Connect(function()
+        if not HRP or not HRP.Parent then return end
         local cam = workspace.CurrentCamera
-        local move = Vector3.zero
-        if Keys[Enum.KeyCode.W] then move = move + cam.CFrame.LookVector end
-        if Keys[Enum.KeyCode.S] then move = move - cam.CFrame.LookVector end
-        if Keys[Enum.KeyCode.A] then move = move - cam.CFrame.RightVector end
-        if Keys[Enum.KeyCode.D] then move = move + cam.CFrame.RightVector end
-        if Keys[Enum.KeyCode.E] then move = move + Vector3.new(0, 1, 0) end
-        if Keys[Enum.KeyCode.Q] then move = move - Vector3.new(0, 1, 0) end
-
-        if move.Magnitude > 0 then
-            BV.Velocity = move.Unit * FlySpeed
-        else
-            BV.Velocity = Vector3.zero
-        end
-        BG.CFrame = cam.CFrame
-        if Humanoid then Humanoid.PlatformStand = true end
+        local m = Vector3.zero
+        if keys[Enum.KeyCode.W] then m = m + cam.CFrame.LookVector end
+        if keys[Enum.KeyCode.S] then m = m - cam.CFrame.LookVector end
+        if keys[Enum.KeyCode.A] then m = m - cam.CFrame.RightVector end
+        if keys[Enum.KeyCode.D] then m = m + cam.CFrame.RightVector end
+        if keys[Enum.KeyCode.E] then m = m + Vector3.new(0,1,0) end
+        if keys[Enum.KeyCode.Q] then m = m - Vector3.new(0,1,0) end
+        bv.Velocity = m.Magnitude > 0 and m.Unit * 50 or Vector3.zero
+        bg.CFrame = cam.CFrame
+        if Hum then Hum.PlatformStand = true end
     end)
-
-    _G.FlyBV = BV
-    _G.FlyBG = BG
-    _G.FlyKD = KD
-    _G.FlyKU = KU
+    _G.FBV, _G.FBG, _G.FKD, _G.FKU = bv, bg, kd, ku
 end
 
 local function StopFly()
-    FlyEnabled = false
-    if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+    FlyOn = false
+    if FlyCon then FlyCon:Disconnect() FlyCon = nil end
     pcall(function()
-        if Humanoid then Humanoid.PlatformStand = false end
-        HRP.Velocity = Vector3.zero
-        if _G.FlyBV then _G.FlyBV:Destroy() end
-        if _G.FlyBG then _G.FlyBG:Destroy() end
-        if _G.FlyKD then _G.FlyKD:Disconnect() end
-        if _G.FlyKU then _G.FlyKU:Disconnect() end
+        if Hum then Hum.PlatformStand = false end
+        if HRP then HRP.Velocity = Vector3.zero end
+        if _G.FBV then _G.FBV:Destroy() end
+        if _G.FBG then _G.FBG:Destroy() end
+        if _G.FKD then _G.FKD:Disconnect() end
+        if _G.FKU then _G.FKU:Disconnect() end
     end)
 end
 
--- Click Teleport
 Mouse.Button1Down:Connect(function()
-    if ClickTPEnabled and Mouse.Target and Mouse.Target:IsA("BasePart") then
-        local pos = Mouse.Hit.Position
-        if pos.Y < HRP.Position.Y + 50 then
-            HRP.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+    if TPOn and Mouse.Target and HRP then
+        local p = Mouse.Hit.Position
+        if p.Y < HRP.Position.Y + 50 then
+            HRP.CFrame = CFrame.new(p + Vector3.new(0,3,0))
         end
     end
 end)
 
--- Auto Players
-local function IsSafe(player)
-    local char = player.Character
-    if char then
-        local attr = char.Parent:GetAttribute("SafeZone")
-        if attr and attr == 31 then return true end
-    end
-    return false
-end
-
+-- WalkSpeed
 task.spawn(function()
-    while true do
-        if AutoPlayersEnabled then
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr \~= LocalPlayer and not IsSafe(plr) and plr.Character then
-                    local char = plr.Character
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    local head = char:FindFirstChild("Head")
-                    local ok, bar = pcall(function()
-                        return char.DisplayBoardPart.DisplayBoard.DisplayBoardGui.PlayerHealthBarDisplay.ContentFrame.ProgressBar
-                    end)
-                    if ok and hrp and head and bar and bar.Size.X.Scale > 0 then
-                        while not IsSafe(plr) and AutoPlayersEnabled and bar.Size.X.Scale > 0 do
-                            HRP.CFrame = head.CFrame * CFrame.new(0, 0, 1)
-                            task.wait()
-                            pcall(function()
-                                AttackRemote:InvokeServer(Character.Parent.Name, "1")
-                            end)
-                            task.wait()
-                        end
+    while task.wait(0.1) do
+        if Hum then Hum.WalkSpeed = SpeedVal end
+    end
+end)
+
+-- Auto Players simple
+task.spawn(function()
+    while task.wait(0.3) do
+        if AutoOn and HRP then
+            for _,p in ipairs(Players:GetPlayers()) do
+                if p \~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local th = p.Character.HumanoidRootPart
+                    if (th.Position - HRP.Position).Magnitude < 80 then
+                        HRP.CFrame = th.CFrame * CFrame.new(0,0,2)
+                        pcall(function()
+                            local r = RS:FindFirstChild("Ability")
+                            if r then
+                                r = r:FindFirstChild("Remote")
+                                if r then
+                                    r = r:FindFirstChild("ApplyCastAbility")
+                                    if r then r:InvokeServer(Char.Parent.Name, "1") end
+                                end
+                            end
+                        end)
+                        break
                     end
                 end
-                task.wait()
             end
-        end
-        task.wait(0.2)
-    end
-end)
-
--- WalkSpeed loop
-task.spawn(function()
-    while task.wait(0.05) do
-        if Humanoid then
-            Humanoid.WalkSpeed = WalkSpeedValue
-            Humanoid.JumpPower = 50
         end
     end
 end)
@@ -193,251 +146,192 @@ end)
 -------------------------------------------------
 -- GUI
 -------------------------------------------------
+pcall(function() if LP.PlayerGui:FindFirstChild("EderHub") then LP.PlayerGui.EderHub:Destroy() end end)
 
-if LocalPlayer.PlayerGui:FindFirstChild("EderHub") then
-    LocalPlayer.PlayerGui.EderHub:Destroy()
-end
+local gui = Instance.new("ScreenGui")
+gui.Name = "EderHub"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = LP:WaitForChild("PlayerGui")
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "EderHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999
-ScreenGui.Parent = LocalPlayer.PlayerGui
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 300, 0, 40)
+main.Position = UDim2.new(0, 20, 0.25, 0)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+main.BorderSizePixel = 0
+main.Active = true
+main.ClipsDescendants = true
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 320, 0, 40)
-Main.Position = UDim2.new(0, 20, 0.3, 0)
-Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.ClipsDescendants = true
-Main.Parent = ScreenGui
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(0, 200, 255)
+stroke.Thickness = 2
 
-local UICorner = Instance.new("UICorner", Main)
-UICorner.CornerRadius = UDim.new(0, 10)
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 40)
+top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BorderSizePixel = 0
+top.Parent = main
+Instance.new("UICorner", top).CornerRadius = UDim.new(0, 10)
 
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(0, 200, 255)
-Stroke.Thickness = 2
-Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -80, 1, 0)
+title.Position = UDim2.new(0, 12, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "EDER2302 × TOCINACIO"
+title.TextColor3 = Color3.fromRGB(0, 220, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 13
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = top
 
--- Title Bar
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Main
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 28, 0, 28)
+minBtn.Position = UDim2.new(1, -65, 0.5, -14)
+minBtn.BackgroundTransparency = 1
+minBtn.Text = "−"
+minBtn.TextColor3 = Color3.fromRGB(255,255,255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 20
+minBtn.Parent = top
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -90, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "EDER2302 × TOCINACIO23021"
-Title.TextColor3 = Color3.fromRGB(0, 220, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 13
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -32, 0.5, -14)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "×"
+closeBtn.TextColor3 = Color3.fromRGB(255,80,80)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 20
+closeBtn.Parent = top
 
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-MinimizeBtn.Position = UDim2.new(1, -70, 0.5, -15)
-MinimizeBtn.BackgroundTransparency = 1
-MinimizeBtn.Text = "−"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextSize = 22
-MinimizeBtn.Parent = TitleBar
+local content = Instance.new("ScrollingFrame")
+content.Size = UDim2.new(1, 0, 1, -40)
+content.Position = UDim2.new(0, 0, 0, 40)
+content.BackgroundTransparency = 1
+content.ScrollBarThickness = 4
+content.CanvasSize = UDim2.new(0, 0, 0, 320)
+content.Parent = main
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "×"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 22
-CloseBtn.Parent = TitleBar
+local list = Instance.new("UIListLayout", content)
+list.Padding = UDim.new(0, 6)
+list.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Content
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, 0, 1, -40)
-Content.Position = UDim2.new(0, 0, 0, 40)
-Content.BackgroundTransparency = 1
-Content.Parent = Main
+local pad = Instance.new("UIPadding", content)
+pad.PaddingTop = UDim.new(0, 8)
+pad.PaddingLeft = UDim.new(0, 10)
+pad.PaddingRight = UDim.new(0, 10)
 
-local List = Instance.new("UIListLayout", Content)
-List.SortOrder = Enum.SortOrder.LayoutOrder
-List.Padding = UDim.new(0, 4)
+local function makeToggle(name, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, -4, 0, 34)
+    f.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    f.BorderSizePixel = 0
+    f.Parent = content
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
 
-local Pad = Instance.new("UIPadding", Content)
-Pad.PaddingLeft = UDim.new(0, 10)
-Pad.PaddingRight = UDim.new(0, 10)
-Pad.PaddingTop = UDim.new(0, 8)
-Pad.PaddingBottom = UDim.new(0, 10)
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(0.7, 0, 1, 0)
+    t.Position = UDim2.new(0, 10, 0, 0)
+    t.BackgroundTransparency = 1
+    t.Text = name
+    t.TextColor3 = Color3.fromRGB(220, 220, 255)
+    t.Font = Enum.Font.Gotham
+    t.TextSize = 13
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.Parent = f
 
--- Helpers GUI
-local function CreateDivider()
-    local d = Instance.new("Frame")
-    d.Size = UDim2.new(1, 0, 0, 1)
-    d.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    d.BorderSizePixel = 0
-    d.Parent = Content
-end
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 40, 0, 20)
+    b.Position = UDim2.new(1, -48, 0.5, -10)
+    b.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    b.Text = ""
+    b.BorderSizePixel = 0
+    b.Parent = f
+    Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
 
-local function CreateButton(text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 36)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(220, 220, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.BorderSizePixel = 0
-    btn.Parent = Content
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    local s = Instance.new("UIStroke", btn)
-    s.Color = Color3.fromRGB(60, 60, 80)
-    s.Thickness = 1
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
-local function CreateToggle(text, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 36)
-    frame.BackgroundTransparency = 1
-    frame.Parent = Content
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.75, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(200, 200, 220)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local toggle = Instance.new("TextButton")
-    toggle.Size = UDim2.new(0, 42, 0, 22)
-    toggle.Position = UDim2.new(1, -42, 0.5, -11)
-    toggle.BackgroundColor3 = default and Color3.fromRGB(0, 200, 120) or Color3.fromRGB(50, 50, 60)
-    toggle.Text = ""
-    toggle.BorderSizePixel = 0
-    toggle.Parent = frame
-    Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
-
-    local state = default
-    toggle.MouseButton1Click:Connect(function()
-        state = not state
-        toggle.BackgroundColor3 = state and Color3.fromRGB(0, 200, 120) or Color3.fromRGB(50, 50, 60)
-        callback(state)
+    local on = false
+    b.MouseButton1Click:Connect(function()
+        on = not on
+        b.BackgroundColor3 = on and Color3.fromRGB(0, 200, 120) or Color3.fromRGB(50, 50, 60)
+        callback(on)
     end)
-    return frame
 end
 
--- BOTONES / TOGGLES
-CreateButton("🔓 Unlock All Styles", function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "Styles",
-        Text = "All styles unlocked (visual)",
+makeToggle("⚡ Fast Train", function(s)
+    FastTrainOn = s
+    for _,c in pairs(FTCons) do if c then c:Disconnect() end end
+    FTCons = {}
+    if s then
+        table.insert(FTCons, RunService.RenderStepped:Connect(DoFastTrain))
+        table.insert(FTCons, RunService.RenderStepped:Connect(DoFastTrain))
+    end
+end)
+
+makeToggle("🏃 WalkSpeed x6", function(s)
+    SpeedOn = s
+    SpeedVal = s and 100 or 16
+end)
+
+makeToggle("👊 Auto Players", function(s)
+    AutoOn = s
+end)
+
+makeToggle("✈️ Fly", function(s)
+    if s then StartFly() else StopFly() end
+end)
+
+makeToggle("🖱️ Click Teleport", function(s)
+    TPOn = s
+end)
+
+-- Minimizar
+local open = false
+minBtn.MouseButton1Click:Connect(function()
+    open = not open
+    local goal = open and UDim2.new(0, 300, 0, 280) or UDim2.new(0, 300, 0, 40)
+    TS:Create(main, TweenInfo.new(0.25), {Size = goal}):Play()
+    minBtn.Text = open and "−" or "+"
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- Arrastrar
+local drag, start, pos
+top.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        drag = true
+        start = i.Position
+        pos = main.Position
+    end
+end)
+top.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        drag = false
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - start
+        main.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y)
+    end
+end)
+
+-- Abrir
+task.wait(0.15)
+open = true
+TS:Create(main, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 280)}):Play()
+minBtn.Text = "−"
+
+pcall(function()
+    SG:SetCore("SendNotification", {
+        Title = "EDER2302 × TOCINACIO",
+        Text = "Hub listo 🔥",
         Duration = 4
     })
 end)
 
-CreateDivider()
-
-CreateToggle("⚡ Fast Train", false, function(state)
-    FastTrainEnabled = state
-    for _, c in ipairs(FastTrainConnections) do
-        if c then c:Disconnect() end
-    end
-    table.clear(FastTrainConnections)
-    if state then
-        table.insert(FastTrainConnections, RunService.RenderStepped:Connect(FastTrain))
-        table.insert(FastTrainConnections, RunService.RenderStepped:Connect(FastTrain))
-    end
-end)
-
-CreateToggle("🏃 Walk Speed x6", false, function(state)
-    WalkSpeedEnabled = state
-    WalkSpeedValue = state and 100 or 16
-end)
-
-CreateToggle("👊 Auto Players (Nearest)", false, function(state)
-    AutoPlayersEnabled = state
-end)
-
-CreateToggle("✈️ Fly", false, function(state)
-    if state then StartFly() else StopFly() end
-end)
-
-CreateToggle("🖱️ Click Teleport", false, function(state)
-    ClickTPEnabled = state
-end)
-
-CreateDivider()
-
-local YTBtn = CreateButton("▶ YouTube - Ginxy", function()
-    setclipboard("https://www.youtube.com/@Ginxy")
-    StarterGui:SetCore("SendNotification", {
-        Title = "Copiado",
-        Text = "Link de YouTube copiado!",
-        Duration = 3
-    })
-end)
-
--- Minimizar / Cerrar
-local Minimized = false
-local FullSize = UDim2.new(0, 320, 0, 320)
-
-MinimizeBtn.MouseButton1Click:Connect(function()
-    Minimized = not Minimized
-    if Minimized then
-        TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Size = UDim2.new(0, 320, 0, 40)}):Play()
-        MinimizeBtn.Text = "+"
-    else
-        TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Size = FullSize}):Play()
-        MinimizeBtn.Text = "−"
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- Arrastrar
-local dragging, dragStart, startPos
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-    end
-end)
-TitleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Abrir animado
-task.wait(0.1)
-TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quint), {Size = FullSize}):Play()
-
-StarterGui:SetCore("SendNotification", {
-    Title = "EDER2302 × TOCINACIO23021",
-    Text = "Hub cargado correctamente 🔥",
-    Duration = 5
-})
-
-print("EDER2302 AND TOCINACIO23021 PROYECT - Hub cargado")
+print("✅ Hub cargado")
