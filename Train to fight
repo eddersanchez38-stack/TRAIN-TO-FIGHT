@@ -1,39 +1,22 @@
--- EDER2302 × TOCINACIO23021 | Train to Fight Hub
--- Versión estable para Delta
+-- EDER2302 AND TOCINACIO23021 PROYECT
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
 local RS = game:GetService("ReplicatedStorage")
-local TS = game:GetService("TweenService")
-local SG = game:GetService("StarterGui")
-
+local UIS = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 local Mouse = LP:GetMouse()
 
-local Char, Hum, HRP
-local function GetChar()
-    Char = LP.Character or LP.CharacterAdded:Wait()
-    Hum = Char:WaitForChild("Humanoid")
-    HRP = Char:WaitForChild("HumanoidRootPart")
-end
-GetChar()
-LP.CharacterAdded:Connect(GetChar)
-
--- Estados
 local FastTrainOn = false
-local FlyOn = false
-local SpeedOn = false
+local SpeedVal = 16
 local AutoOn = false
 local TPOn = false
-local SpeedVal = 16
-local FTCons = {}
-local FlyCon
+local FlyOn = false
+local InvisibleOn = false
+local Connections = {}
+local FlyCon = nil
 
--------------------------------------------------
--- SISTEMAS
--------------------------------------------------
-local function DoFastTrain()
+local function FastTrain()
     pcall(function()
         local te = RS:FindFirstChild("TrainEquipment")
         local ts = RS:FindFirstChild("TrainSystem")
@@ -41,101 +24,56 @@ local function DoFastTrain()
         local er = te:FindFirstChild("Remote")
         local sr = ts:FindFirstChild("Remote")
         if not (er and sr) then return end
-
         local a = er:FindFirstChild("ApplyStationaryTrain")
         local b = er:FindFirstChild("ApplyMobileTrain")
         local c = sr:FindFirstChild("TrainSpeedHasChanged")
         local d = sr:FindFirstChild("ApplyAddFrenzyValue")
-
         if a then a:InvokeServer(math.huge) end
         if b then b:InvokeServer(math.huge) end
-        if c then c:FireServer(math.huge) c:FireServer(math.huge) end
-        if d then d:InvokeServer(10000) d:FireServer(math.huge) end
+        if c then c:FireServer(math.huge) end
+        if d then d:InvokeServer(10000) end
     end)
 end
 
-local function StartFly()
-    if FlyCon then FlyCon:Disconnect() end
-    FlyOn = true
-    local bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(9e9,9e9,9e9)
-    bv.Velocity = Vector3.zero
-    bv.Parent = HRP
-    local bg = Instance.new("BodyGyro")
-    bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
-    bg.P = 9e4
-    bg.Parent = HRP
-
-    local keys = {}
-    local kd = UIS.InputBegan:Connect(function(i,g) if not g then keys[i.KeyCode]=true end end)
-    local ku = UIS.InputEnded:Connect(function(i) keys[i.KeyCode]=false end)
-
-    FlyCon = RunService.RenderStepped:Connect(function()
-        if not HRP or not HRP.Parent then return end
-        local cam = workspace.CurrentCamera
-        local m = Vector3.zero
-        if keys[Enum.KeyCode.W] then m = m + cam.CFrame.LookVector end
-        if keys[Enum.KeyCode.S] then m = m - cam.CFrame.LookVector end
-        if keys[Enum.KeyCode.A] then m = m - cam.CFrame.RightVector end
-        if keys[Enum.KeyCode.D] then m = m + cam.CFrame.RightVector end
-        if keys[Enum.KeyCode.E] then m = m + Vector3.new(0,1,0) end
-        if keys[Enum.KeyCode.Q] then m = m - Vector3.new(0,1,0) end
-        bv.Velocity = m.Magnitude > 0 and m.Unit * 50 or Vector3.zero
-        bg.CFrame = cam.CFrame
-        if Hum then Hum.PlatformStand = true end
-    end)
-    _G.FBV, _G.FBG, _G.FKD, _G.FKU = bv, bg, kd, ku
-end
-
-local function StopFly()
-    FlyOn = false
-    if FlyCon then FlyCon:Disconnect() FlyCon = nil end
-    pcall(function()
-        if Hum then Hum.PlatformStand = false end
-        if HRP then HRP.Velocity = Vector3.zero end
-        if _G.FBV then _G.FBV:Destroy() end
-        if _G.FBG then _G.FBG:Destroy() end
-        if _G.FKD then _G.FKD:Disconnect() end
-        if _G.FKU then _G.FKU:Disconnect() end
-    end)
-end
-
-Mouse.Button1Down:Connect(function()
-    if TPOn and Mouse.Target and HRP then
-        local p = Mouse.Hit.Position
-        if p.Y < HRP.Position.Y + 50 then
-            HRP.CFrame = CFrame.new(p + Vector3.new(0,3,0))
+spawn(function()
+    while wait(0.1) do
+        local char = LP.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = SpeedVal end
         end
     end
 end)
 
--- WalkSpeed
-task.spawn(function()
-    while task.wait(0.1) do
-        if Hum then Hum.WalkSpeed = SpeedVal end
+Mouse.Button1Down:Connect(function()
+    if TPOn and Mouse.Target then
+        local char = LP.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0))
+        end
     end
 end)
 
--- Auto Players simple
-task.spawn(function()
-    while task.wait(0.3) do
-        if AutoOn and HRP then
-            for _,p in ipairs(Players:GetPlayers()) do
-                if p \~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local th = p.Character.HumanoidRootPart
-                    if (th.Position - HRP.Position).Magnitude < 80 then
-                        HRP.CFrame = th.CFrame * CFrame.new(0,0,2)
-                        pcall(function()
-                            local r = RS:FindFirstChild("Ability")
-                            if r then
-                                r = r:FindFirstChild("Remote")
-                                if r then
-                                    r = r:FindFirstChild("ApplyCastAbility")
-                                    if r then r:InvokeServer(Char.Parent.Name, "1") end
+spawn(function()
+    while wait(0.4) do
+        if AutoOn then
+            local char = LP.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p \~= LP and p.Character then
+                        local th = p.Character:FindFirstChild("HumanoidRootPart")
+                        if th and (th.Position - hrp.Position).Magnitude < 55 then
+                            hrp.CFrame = th.CFrame * CFrame.new(0, 0, 2)
+                            pcall(function()
+                                local ab = RS:FindFirstChild("Ability")
+                                if ab and ab:FindFirstChild("Remote") then
+                                    local cast = ab.Remote:FindFirstChild("ApplyCastAbility")
+                                    if cast then cast:InvokeServer(char.Parent.Name, "1") end
                                 end
-                            end
-                        end)
-                        break
+                            end)
+                            break
+                        end
                     end
                 end
             end
@@ -143,195 +81,204 @@ task.spawn(function()
     end
 end)
 
--------------------------------------------------
--- GUI
--------------------------------------------------
-pcall(function() if LP.PlayerGui:FindFirstChild("EderHub") then LP.PlayerGui.EderHub:Destroy() end end)
+local function setInvisible(state)
+    local char = LP.Character
+    if not char then return end
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Decal") then
+            v.Transparency = state and 1 or (v.Name == "HumanoidRootPart" and 1 or 0)
+        end
+    end
+end
 
+local function toggleFly(state)
+    local char = LP.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp then return end
+    if state then
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bv.Velocity = Vector3.zero
+        bv.Parent = hrp
+        local bg = Instance.new("BodyGyro")
+        bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bg.P = 90000
+        bg.Parent = hrp
+        local keys = {}
+        local kd = UIS.InputBegan:Connect(function(i, g) if not g then keys[i.KeyCode] = true end end)
+        local ku = UIS.InputEnded:Connect(function(i) keys[i.KeyCode] = false end)
+        FlyCon = RunService.RenderStepped:Connect(function()
+            if not hrp or not hrp.Parent then return end
+            local cam = workspace.CurrentCamera
+            local m = Vector3.zero
+            if keys[Enum.KeyCode.W] then m = m + cam.CFrame.LookVector end
+            if keys[Enum.KeyCode.S] then m = m - cam.CFrame.LookVector end
+            if keys[Enum.KeyCode.A] then m = m - cam.CFrame.RightVector end
+            if keys[Enum.KeyCode.D] then m = m + cam.CFrame.RightVector end
+            if keys[Enum.KeyCode.E] then m = m + Vector3.new(0, 1, 0) end
+            if keys[Enum.KeyCode.Q] then m = m - Vector3.new(0, 1, 0) end
+            bv.Velocity = m.Magnitude > 0 and m.Unit * 50 or Vector3.zero
+            bg.CFrame = cam.CFrame
+            if hum then hum.PlatformStand = true end
+        end)
+        _G.FlyBV, _G.FlyBG, _G.FlyKD, _G.FlyKU = bv, bg, kd, ku
+    else
+        if FlyCon then FlyCon:Disconnect() end
+        pcall(function()
+            if hum then hum.PlatformStand = false end
+            if _G.FlyBV then _G.FlyBV:Destroy() end
+            if _G.FlyBG then _G.FlyBG:Destroy() end
+            if _G.FlyKD then _G.FlyKD:Disconnect() end
+            if _G.FlyKU then _G.FlyKU:Disconnect() end
+        end)
+    end
+end
+
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "EderHub"
 gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = LP:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 300, 0, 40)
-main.Position = UDim2.new(0, 20, 0.25, 0)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+main.Size = UDim2.new(0, 200, 0, 40)
+main.Position = UDim2.new(0, 15, 0.3, 0)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 main.BorderSizePixel = 0
 main.Active = true
 main.ClipsDescendants = true
 main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
-
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(0, 200, 255)
-stroke.Thickness = 2
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
 
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1, 0, 0, 40)
-top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 top.BorderSizePixel = 0
 top.Parent = main
-Instance.new("UICorner", top).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", top).CornerRadius = UDim.new(0, 8)
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -80, 1, 0)
-title.Position = UDim2.new(0, 12, 0, 0)
+title.Size = UDim2.new(1, -65, 1, 0)
+title.Position = UDim2.new(0, 8, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "EDER2302 × TOCINACIO"
-title.TextColor3 = Color3.fromRGB(0, 220, 255)
+title.Text = "EDER2302 x TOCINACIO"
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 13
+title.TextSize = 12
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = top
 
 local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 28, 0, 28)
-minBtn.Position = UDim2.new(1, -65, 0.5, -14)
+minBtn.Size = UDim2.new(0, 26, 0, 26)
+minBtn.Position = UDim2.new(1, -55, 0.5, -13)
 minBtn.BackgroundTransparency = 1
-minBtn.Text = "−"
-minBtn.TextColor3 = Color3.fromRGB(255,255,255)
+minBtn.Text = "+"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minBtn.Font = Enum.Font.GothamBold
-minBtn.TextSize = 20
+minBtn.TextSize = 18
 minBtn.Parent = top
 
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 28, 0, 28)
-closeBtn.Position = UDim2.new(1, -32, 0.5, -14)
+closeBtn.Size = UDim2.new(0, 26, 0, 26)
+closeBtn.Position = UDim2.new(1, -28, 0.5, -13)
 closeBtn.BackgroundTransparency = 1
-closeBtn.Text = "×"
-closeBtn.TextColor3 = Color3.fromRGB(255,80,80)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 70, 70)
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 20
+closeBtn.TextSize = 16
 closeBtn.Parent = top
 
-local content = Instance.new("ScrollingFrame")
+local content = Instance.new("Frame")
 content.Size = UDim2.new(1, 0, 1, -40)
 content.Position = UDim2.new(0, 0, 0, 40)
 content.BackgroundTransparency = 1
-content.ScrollBarThickness = 4
-content.CanvasSize = UDim2.new(0, 0, 0, 320)
 content.Parent = main
 
-local list = Instance.new("UIListLayout", content)
-list.Padding = UDim.new(0, 6)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-
-local pad = Instance.new("UIPadding", content)
-pad.PaddingTop = UDim.new(0, 8)
-pad.PaddingLeft = UDim.new(0, 10)
-pad.PaddingRight = UDim.new(0, 10)
-
-local function makeToggle(name, callback)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, -4, 0, 34)
-    f.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-    f.BorderSizePixel = 0
-    f.Parent = content
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
-
-    local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(0.7, 0, 1, 0)
-    t.Position = UDim2.new(0, 10, 0, 0)
-    t.BackgroundTransparency = 1
-    t.Text = name
-    t.TextColor3 = Color3.fromRGB(220, 220, 255)
-    t.Font = Enum.Font.Gotham
-    t.TextSize = 13
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.Parent = f
-
+local function btn(text, y, callback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 40, 0, 20)
-    b.Position = UDim2.new(1, -48, 0.5, -10)
-    b.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    b.Text = ""
-    b.BorderSizePixel = 0
-    b.Parent = f
-    Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
-
+    b.Size = UDim2.new(0.9, 0, 0, 26)
+    b.Position = UDim2.new(0.05, 0, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    b.Text = text .. ": OFF"
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 12
+    b.Parent = content
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     local on = false
     b.MouseButton1Click:Connect(function()
         on = not on
-        b.BackgroundColor3 = on and Color3.fromRGB(0, 200, 120) or Color3.fromRGB(50, 50, 60)
+        b.Text = text .. (on and ": ON" or ": OFF")
+        b.BackgroundColor3 = on and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 40, 50)
         callback(on)
     end)
 end
 
-makeToggle("⚡ Fast Train", function(s)
+btn("Fast Train", 6, function(s)
     FastTrainOn = s
-    for _,c in pairs(FTCons) do if c then c:Disconnect() end end
-    FTCons = {}
+    for _, c in pairs(Connections) do if c then c:Disconnect() end end
+    Connections = {}
     if s then
-        table.insert(FTCons, RunService.RenderStepped:Connect(DoFastTrain))
-        table.insert(FTCons, RunService.RenderStepped:Connect(DoFastTrain))
+        table.insert(Connections, RunService.RenderStepped:Connect(FastTrain))
+        table.insert(Connections, RunService.RenderStepped:Connect(FastTrain))
     end
 end)
 
-makeToggle("🏃 WalkSpeed x6", function(s)
-    SpeedOn = s
+btn("WalkSpeed x6", 36, function(s)
     SpeedVal = s and 100 or 16
 end)
 
-makeToggle("👊 Auto Players", function(s)
+btn("Auto Players", 66, function(s)
     AutoOn = s
 end)
 
-makeToggle("✈️ Fly", function(s)
-    if s then StartFly() else StopFly() end
+btn("Fly", 96, function(s)
+    toggleFly(s)
 end)
 
-makeToggle("🖱️ Click Teleport", function(s)
+btn("Click Teleport", 126, function(s)
     TPOn = s
 end)
 
--- Minimizar
-local open = false
+btn("Invisible", 156, function(s)
+    InvisibleOn = s
+    setInvisible(s)
+end)
+
+local opened = false
 minBtn.MouseButton1Click:Connect(function()
-    open = not open
-    local goal = open and UDim2.new(0, 300, 0, 280) or UDim2.new(0, 300, 0, 40)
-    TS:Create(main, TweenInfo.new(0.25), {Size = goal}):Play()
-    minBtn.Text = open and "−" or "+"
+    opened = not opened
+    main.Size = opened and UDim2.new(0, 200, 0, 230) or UDim2.new(0, 200, 0, 40)
+    minBtn.Text = opened and "-" or "+"
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
     gui:Destroy()
 end)
 
--- Arrastrar
-local drag, start, pos
+local dragging, dragStart, startPos
 top.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        drag = true
-        start = i.Position
-        pos = main.Position
+        dragging = true
+        dragStart = i.Position
+        startPos = main.Position
     end
 end)
 top.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        drag = false
+        dragging = false
     end
 end)
 UIS.InputChanged:Connect(function(i)
-    if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-        local d = i.Position - start
-        main.Position = UDim2.new(pos.X.Scale, pos.X.Offset + d.X, pos.Y.Scale, pos.Y.Offset + d.Y)
+    if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
     end
 end)
 
--- Abrir
-task.wait(0.15)
-open = true
-TS:Create(main, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 280)}):Play()
-minBtn.Text = "−"
+opened = true
+main.Size = UDim2.new(0, 200, 0, 230)
+minBtn.Text = "-"
 
-pcall(function()
-    SG:SetCore("SendNotification", {
-        Title = "EDER2302 × TOCINACIO",
-        Text = "Hub listo 🔥",
-        Duration = 4
-    })
-end)
-
-print("✅ Hub cargado")
+print("EDER2302 AND TOCINACIO23021 PROYECT cargado")
