@@ -1,0 +1,393 @@
+-- Da Block HUB | + Sistema de Idiomas Completo
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ------------------------------
+-- SISTEMA DE TRADUCCIONES (22 IDIOMAS)
+-- ------------------------------
+local traducciones = {
+    es = {
+        selIdioma = "Selecciona tu idioma",
+        titulo = "Da Block HUB",
+        velocidad = "WalkSpeed: ",
+        volar = "Fly: ",
+        noclip = "Noclip: ",
+        dios = "Godmode: ",
+        granja = "Auto Farm: ",
+        tpLoc = "TP Locations ",
+        minimizar = "Minimizar Menú",
+        restaurar = "Restaurar Menú",
+        cerrar = "Cerrar HUB",
+        cargado = "✅ HUB cargado. Pulsa 'TP Locations' para abrir las ubicaciones."
+    },
+    en = {
+        selIdioma = "Select your language",
+        titulo = "Da Block HUB",
+        velocidad = "WalkSpeed: ",
+        volar = "Fly: ",
+        noclip = "Noclip: ",
+        dios = "Godmode: ",
+        granja = "Auto Farm: ",
+        tpLoc = "TP Locations ",
+        minimizar = "Minimize Menu",
+        restaurar = "Restore Menu",
+        cerrar = "Close HUB",
+        cargado = "✅ HUB loaded. Click 'TP Locations' to open locations."
+    },
+    pt = {
+        selIdioma = "Selecione seu idioma",
+        titulo = "Da Block HUB",
+        velocidad = "Velocidade: ",
+        volar = "Voar: ",
+        noclip = "Noclip: ",
+        dios = "Modo Deus: ",
+        granja = "Auto Fazenda: ",
+        tpLoc = "Locais TP ",
+        minimizar = "Minimizar Menu",
+        restaurar = "Restaurar Menu",
+        cerrar = "Fechar HUB",
+        cargado = "✅ HUB carregado. Clique em 'TP Locations' para abrir locais."
+    },
+    fr = {
+        selIdioma = "Choisissez votre langue",
+        titulo = "Da Block HUB",
+        velocidad = "Vitesse: ",
+        volar = "Voler: ",
+        noclip = "Noclip: ",
+        dios = "Mode Dieu: ",
+        granja = "Auto Ferme: ",
+        tpLoc = "Emplacements TP ",
+        minimizar = "Réduire le menu",
+        restaurar = "Restaurer le menu",
+        cerrar = "Fermer HUB",
+        cargado = "✅ HUB chargé. Cliquez sur 'TP Locations' pour ouvrir les emplacements."
+    },
+    de = {
+        selIdioma = "Wähle deine Sprache",
+        titulo = "Da Block HUB",
+        velocidad = "Geschwindigkeit: ",
+        volar = "Fliegen: ",
+        noclip = "Noclip: ",
+        dios = "Gottmodus: ",
+        granja = "Auto Farm: ",
+        tpLoc = "TP Orte ",
+        minimizar = "Menü minimieren",
+        restaurar = "Menü wiederherstellen",
+        cerrar = "HUB schließen",
+        cargado = "✅ HUB geladen. Klicke auf 'TP Locations' um Orte zu öffnen."
+    },
+    it = {
+        selIdioma = "Scegli la lingua",
+        titulo = "Da Block HUB",
+        velocidad = "Velocità: ",
+        volar = "Volare: ",
+        noclip = "Noclip: ",
+        dios = "Modalità Dio: ",
+        granja = "Auto Fattoria: ",
+        tpLoc = "Posizioni TP ",
+        minimizar = "Riduci menu",
+        restaurar = "Ripristina menu",
+        cerrar = "Chiudi HUB",
+        cargado = "✅ HUB caricato. Clicca 'TP Locations' per aprire le posizioni."
+    },
+    ru = {
+        selIdioma = "Выберите язык",
+        titulo = "Da Block HUB",
+        velocidad = "Скорость: ",
+        volar = "Полёт: ",
+        noclip = "Ноклип: ",
+        dios = "Бессмертие: ",
+        granja = "Авто-Фарм: ",
+        tpLoc = "Локации ТП ",
+        minimizar = "Свернуть меню",
+        restaurar = "Развернуть меню",
+        cerrar = "Закрыть HUB",
+        cargado = "✅ HUB загружен. Нажмите 'TP Locations' для открытия локаций."
+    },
+    ja = {
+        selIdioma = "言語を選択",
+        titulo = "Da Block HUB",
+        velocidad = "移動速度: ",
+        volar = "飛行: ",
+        noclip = "ノクリップ: ",
+        dios = "無敵: ",
+        granja = "自動収集: ",
+        tpLoc = "テレポート先 ",
+        minimizar = "メニューを最小化",
+        restaurar = "メニューを復元",
+        cerrar = "閉じる",
+        cargado = "✅ HUB読み込み完了。'TP Locations'をクリックして場所を開く。"
+    },
+    ko = {
+        selIdioma = "언어 선택",
+        titulo = "Da Block HUB",
+        velocidad = "이동 속도: ",
+        volar = "비행: ",
+        noclip = "노클립: ",
+        dios = "무적: ",
+        granja = "자동 파밍: ",
+        tpLoc = "텔레포트 위치 ",
+        minimizar = "메뉴 최소화",
+        restaurar = "메뉴 복원",
+        cerrar = "닫기",
+        cargado = "✅ HUB 로드 완료. 'TP Locations'를 클릭하여 위치를 여세요."
+    },
+    zh = {
+        selIdioma = "选择语言",
+        titulo = "Da Block HUB",
+        velocidad = "移动速度: ",
+        volar = "飞行: ",
+        noclip = "穿墙: ",
+        dios = "无敌: ",
+        granja = "自动刷取: ",
+        tpLoc = "传送点 ",
+        minimizar = "最小化菜单",
+        restaurar = "恢复菜单",
+        cerrar = "关闭",
+        cargado = "✅ HUB 加载完成。点击 'TP Locations' 打开位置。"
+    },
+    ar = {selIdioma = "اختر لغتك", titulo = "Da Block HUB", velocidad = "السرعة: ", volar = "الطيران: ", noclip = "تخطي الجدران: ", dios = "وضع الإله: ", granja = "زراعة تلقائية: ", tpLoc = "مواقع النقل ", minimizar = "تصغير القائمة", restaurar = "استعادة القائمة", cerrar = "إغلاق", cargado = "✅ تم التحميل. اضغط 'TP Locations' لفتح المواقع."},
+    hi = {selIdioma = "भाषा चुनें", titulo = "Da Block HUB", velocidad = "गति: ", volar = "उड़ान: ", noclip = "नोक्लिप: ", dios = "ईश्वर मोड: ", granja = "ऑटो फार्म: ", tpLoc = "टीपी स्थान ", minimizar = "मेनू छोटा करें", restaurar = "मेनू वापस लाएं", cerrar = "बंद करें", cargado = "✅ तैयार है। 'TP Locations' पर क्लिक करें।"},
+    tr = {selIdioma = "Dil seçin", titulo = "Da Block HUB", velocidad = "Hız: ", volar = "Uçuş: ", noclip = "Duvar Geçme: ", dios = "Tanrı Modu: ", granja = "Otomatik Farm: ", tpLoc = "TP Konumları ", minimizar = "Menüyü küçült", restaurar = "Menüyü geri yükle", cerrar = "Kapat", cargado = "✅ Yüklendi. Konumları açmak için 'TP Locations' tıklayın."},
+    pl = {selIdioma = "Wybierz język", titulo = "Da Block HUB", velocidad = "Prędkość: ", volar = "Lot: ", noclip = "Noklip: ", dios = "Tryb Boga: ", granja = "Auto Farma: ", tpLoc = "Miejsca TP ", minimizar = "Minimalizuj menu", restaurar = "Przywróć menu", cerrar = "Zamknij", cargado = "✅ Gotowe. Kliknij 'TP Locations' aby otworzyć miejsca."},
+    nl = {selIdioma = "Kies taal", titulo = "Da Block HUB", velocidad = "Snelheid: ", volar = "Vliegen: ", noclip = "Noclip: ", dios = "Godmodus: ", granja = "Auto Farm: ", tpLoc = "TP Locaties ", minimizar = "Menu minimaliseren", restaurar = "Menu herstellen", cerrar = "Sluiten", cargado = "✅ Geladen. Klik 'TP Locations' om locaties te openen."},
+    sv = {selIdioma = "Välj språk", titulo = "Da Block HUB", velocidad = "Hastighet: ", volar = "Flyga: ", noclip = "Noklipp: ", dios = "Gudläge: ", granja = "Auto Farm: ", tpLoc = "TP Platser ", minimizar = "Minimera meny", restaurar = "Återställ meny", cerrar = "Stäng", cargado = "✅ Klar. Klicka 'TP Locations' för att öppna platser."},
+    fi = {selIdioma = "Valitse kieli", titulo = "Da Block HUB", velocidad = "Nopeus: ", volar = "Lentäminen: ", noclip = "Noklip: ", dios = "Jumalatila: ", granja = "Automaattinen tila: ", tpLoc = "TP Sijainnit ", minimizar = "Pienennä valikko", restaurar = "Palauta valikko", cerrar = "Sulje", cargado = "✅ Valmis. Avaa sijainnit klikkaamalla 'TP Locations'."},
+    da = {selIdioma = "Vælg sprog", titulo = "Da Block HUB", velocidad = "Hastighed: ", volar = "Flyv: ", noclip = "Noklip: ", dios = "Gudtilstand: ", granja = "Auto Farm: ", tpLoc = "TP Steder ", minimizar = "Minimer menu", restaurar = "Gendan menu", cerrar = "Luk", cargado = "✅ Indlæst. Klik 'TP Locations' for at åbne steder."},
+    no = {selIdioma = "Velg språk", titulo = "Da Block HUB", velocidad = "Hastighet: ", volar = "Fly: ", noclip = "Noklip: ", dios = "Gudmodus: ", granja = "Auto Farm: ", tpLoc = "TP Steder ", minimizar = "Minimer meny", restaurar = "Gjenopprett meny", cerrar = "Lukk", cargado = "✅ Klar. Klikk 'TP Locations' for å åpne steder."},
+    cs = {selIdioma = "Vyberte jazyk", titulo = "Da Block HUB", velocidad = "Rychlost: ", volar = "Let: ", noclip = "Noklip: ", dios = "Božský mód: ", granja = "Auto Farma: ", tpLoc = "TP Místa ", minimizar = "Minimalizovat menu", restaurar = "Obnovit menu", cerrar = "Zavřít", cargado = "✅ Připraveno. Kliknutím 'TP Locations' otevřete místa."},
+    hu = {selIdioma = "Válassz nyelvet", titulo = "Da Block HUB", velocidad = "Sebesség: ", volar = "Repülés: ", noclip = "Noklip: ", dios = "Isten Mód: ", granja = "Auto Farm: ", tpLoc = "TP Helyek ", minimizar = "Menü kicsinyítés", restaurar = "Menü visszaállítás", cerrar = "Bezárás", cargado = "✅ Kész. Kattints a 'TP Locations' gombra a helyek megnyitásához."},
+    ro = {selIdioma = "Alege limba", titulo = "Da Block HUB", velocidad = "Viteză: ", volar = "Zbor: ", noclip = "Noclip: ", dios = "Mod Dumnezeu: ", granja = "Auto Fermă: ", tpLoc = "Locații TP ", minimizar = "Minimizează meniul", restaurar = "Restaurează meniul", cerrar = "Închide", cargado = "✅ Gata. Apasă 'TP Locations' pentru a deschide locațiile."}
+}
+
+local idiomaElegido, txt = nil, nil
+
+-- ------------------------------
+-- PANTALLA DE SELECCIÓN DE IDIOMA
+-- ------------------------------
+local pantallaIdioma = Instance.new("ScreenGui")
+pantallaIdioma.ResetOnSpawn = false
+pantallaIdioma.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+pantallaIdioma.Parent = playerGui
+
+local fondoSel = Instance.new("Frame")
+fondoSel.Size = UDim2.new(0, 500, 0, 500)
+fondoSel.Position = UDim2.new(0.5, -250, 0.5, -250)
+fondoSel.BackgroundColor3 = Color3.fromRGB(22,22,28)
+fondoSel.Active = true
+fondoSel.Parent = pantallaIdioma
+
+local tituloSel = Instance.new("TextLabel")
+tituloSel.Size = UDim2.new(1,0,0,60)
+tituloSel.BackgroundColor3 = Color3.fromRGB(180,0,40)
+tituloSel.Text = traducciones.es.selIdioma
+tituloSel.TextColor3 = Color3.new(1,1,1)
+tituloSel.TextScaled = true
+tituloSel.Parent = fondoSel
+
+local scrollIdiomas = Instance.new("ScrollingFrame")
+scrollIdiomas.Size = UDim2.new(1,-20,1,-70)
+scrollIdiomas.Position = UDim2.new(0,10,0,70)
+scrollIdiomas.BackgroundTransparency = 1
+scrollIdiomas.ScrollBarThickness = 8
+scrollIdiomas.Parent = fondoSel
+
+local layoutIdiomas = Instance.new("UIListLayout")
+layoutIdiomas.Padding = UDim.new(0,10)
+layoutIdiomas.Parent = scrollIdiomas
+
+local idiomasDisponibles = {
+    {codigo="es", nombre="🇪🇸 Español"}, {codigo="en", nombre="🇺🇸 English"},
+    {codigo="pt", nombre="🇧🇷 Português"}, {codigo="fr", nombre="🇫🇷 Français"},
+    {codigo="de", nombre="🇩🇪 Deutsch"}, {codigo="it", nombre="🇮🇹 Italiano"},
+    {codigo="ru", nombre="🇷🇺 Русский"}, {codigo="ja", nombre="🇯🇵 日本語"},
+    {codigo="ko", nombre="🇰🇷 한국어"}, {codigo="zh", nombre="🇨🇳 中文"},
+    {codigo="ar", nombre="🇸🇦 العربية"}, {codigo="hi", nombre="🇮🇳 हिन्दी"},
+    {codigo="tr", nombre="🇹🇷 Türkçe"}, {codigo="pl", nombre="🇵🇱 Polski"},
+    {codigo="nl", nombre="🇳🇱 Nederlands"}, {codigo="sv", nombre="🇸🇪 Svenska"},
+    {codigo="fi", nombre="🇫🇮 Suomi"}, {codigo="da", nombre="🇩🇰 Dansk"},
+    {codigo="no", nombre="🇳🇴 Norsk"}, {codigo="cs", nombre="🇨🇿 Čeština"},
+    {codigo="hu", nombre="🇭🇺 Magyar"}, {codigo="ro", nombre="🇷🇴 Română"}
+}
+
+for _, idioma in pairs(idiomasDisponibles) do
+    local btnIdioma = Instance.new("TextButton")
+    btnIdioma.Size = UDim2.new(1,-10,0,50)
+    btnIdioma.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    btnIdioma.Text = idioma.nombre
+    btnIdioma.TextColor3 = Color3.new(1,1,1)
+    btnIdioma.TextScaled = true
+    btnIdioma.Parent = scrollIdiomas
+    
+    btnIdioma.MouseButton1Click:Connect(function()
+        idiomaElegido = idioma.codigo
+        txt = traducciones[idiomaElegido]
+        pantallaIdioma:Destroy()
+        CargarMenuPrincipal()
+    end)
+end
+
+-- ------------------------------
+-- FUNCIÓN PARA CARGAR TU MENÚ ORIGINAL
+-- ------------------------------
+function CargarMenuPrincipal()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    local humanoid = character:WaitForChild("Humanoid")
+    local minimizado = false
+
+    player.CharacterAdded:Connect(function(new)
+        character = new
+        root = new:WaitForChild("HumanoidRootPart")
+        humanoid = new:WaitForChild("Humanoid")
+    end)
+
+    local toggles = {speed=false, fly=false, noclip=false, god=false, esp=false, silent=false, farm=false, jump=false}
+    local walkSpeedValue = 120
+    local autoFarmDelay = 6
+
+    local locations = {
+        ["Tienda de Armas"] = Vector3.new(3807.15, 4.87, 219.97),
+        ["Burger King"] = Vector3.new(3649.73, 4.70, 528.54),
+        ["Motel"] = Vector3.new(3326.04, 4.28, 52.71),
+        ["Joyería"] = Vector3.new(4065.32, 4.29, -339.37),
+        ["Banco"] = Vector3.new(4148.41, 4.28, -52.02),
+        ["Concesionario"] = Vector3.new(4536.16, 5.06, 226.48),
+        ["Basquetball"] = Vector3.new(4112.87, 4.39, 312.74),
+        ["Gym"] = Vector3.new(3557.72, 4.29, -412.91),
+        ["Police Station"] = Vector3.new(4004.16, 11.91, -751.80),
+        ["Farmacia"] = Vector3.new(4318.52, 5.17, -523.02),
+        ["Haircuts"] = Vector3.new(4251.77, 8.20, -371.79)
+    }
+
+    local function TP(pos)
+        if root then root.CFrame = CFrame.new(pos + Vector3.new(0,8,0)) end
+    end
+
+    -- GUI
+    local sg = Instance.new("ScreenGui")
+    sg.ResetOnSpawn = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 430, 0, 620)
+    frame.Position = UDim2.new(0.5, -215, 0.5, -310)
+    frame.BackgroundColor3 = Color3.fromRGB(22,22,28)
+    frame.Active = true
+    frame.Parent = sg
+
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1,0,0,50)
+    titleBar.BackgroundColor3 = Color3.fromRGB(180,0,40)
+    titleBar.Active = true
+    titleBar.ZIndex = 10
+    titleBar.Parent = frame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1,0,1,0)
+    title.BackgroundTransparency = 1
+    title.Text = txt.titulo
+    title.TextColor3 = Color3.new(1,1,1)
+    title.TextScaled = true
+    title.ZIndex = 9
+    title.Parent = titleBar
+
+    -- ✅ ARRASTRE ARREGLADO 100%
+    local dragging = false
+    local offset = Vector2.new()
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            offset = UserInputService:GetMouseLocation() - frame.AbsolutePosition
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local nuevaPos = UserInputService:GetMouseLocation() - offset
+            frame.Position = UDim2.new(0, nuevaPos.X, 0, nuevaPos.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    -- Scroll (TU VERSIÓN ORIGINAL)
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1,-10,1,-55)
+    scroll.Position = UDim2.new(0,5,0,55)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 8
+    scroll.Parent = frame
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0,8)
+    layout.Parent = scroll
+
+    local function AddButton(text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1,-10,0,50)
+        btn.BackgroundColor3 = Color3.fromRGB(40,40,50)
+        btn.Text = text
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.TextScaled = true
+        btn.Parent = scroll
+        if callback then btn.MouseButton1Click:Connect(callback) end
+        return btn
+    end
+
+    -- Botones principales TRADUCIDOS
+    AddButton(txt.velocidad.."OFF", function(b) toggles.speed = not toggles.speed b.Text = txt.velocidad..(toggles.speed and "ON" or "OFF") end)
+    AddButton(txt.volar.."OFF", function(b) toggles.fly = not toggles.fly b.Text = txt.volar..(toggles.fly and "ON" or "OFF") end)
+    AddButton(txt.noclip.."OFF", function(b) toggles.noclip = not toggles.noclip b.Text = txt.noclip..(toggles.noclip and "ON" or "OFF") end)
+    AddButton(txt.dios.."OFF", function(b) toggles.god = not toggles.god b.Text = txt.dios..(toggles.god and "ON" or "OFF") end)
+    AddButton(txt.granja.."OFF", function(b) toggles.farm = not toggles.farm b.Text = txt.granja..(toggles.farm and "ON" or "OFF") end)
+
+    -- TP Menu Colapsable
+    local tpOpen = false
+    local tpButtons = {}
+
+    local tpMainBtn = AddButton(txt.tpLoc.."▼", function()
+        tpOpen = not tpOpen
+        for _, btn in pairs(tpButtons) do btn.Visible = tpOpen end
+        tpMainBtn.Text = txt.tpLoc..(tpOpen and "▲" or "▼")
+    end)
+
+    for name, pos in pairs(locations) do
+        local btn = AddButton("   → "..name, function() TP(pos) end)
+        btn.Visible = false
+        table.insert(tpButtons, btn)
+    end
+
+    -- Minimizar agregado
+    AddButton(txt.minimizar, function(b)
+        minimizado = not minimizado
+        b.Text = minimizado and txt.restaurar or txt.minimizar
+        frame.Size = minimizado and UDim2.new(0,430,0,50) or UDim2.new(0,430,0,620)
+        scroll.Visible = not minimizado
+    end)
+
+    AddButton(txt.cerrar, function() sg:Destroy() end)
+
+    -- Loops ORIGINALES
+    RunService.RenderStepped:Connect(function()
+        if toggles.speed and humanoid then humanoid.WalkSpeed = walkSpeedValue end
+        if toggles.noclip and character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end)
+
+    print(txt.cargado)
+end
+ Mira mejor en el auto farm agregale qué haiga un frame donde haiga trabajos en los que va a trabajar el auto farm, va a aver uno de Cleaner qe te va a llevar a esta cordenada y va a aceptar el trabajo y cuando lo acepte te lleve primero a esta 3519.97, 4.54, 254.71 luego después de 6 segundos a esta 3530.36, 4.54, 257.25 luego de otros 6 segundos a esta 3540.53, 4.54, 256.33 luego a esta 3527.63, 4.54, 241.79 luego esta 3513.26, 4.54, 240.54 luego esta 3486.47, 4.54, 238.02luego esta 3470.89, 4.54, 242.60 luego esta 3469.83, 4.54, 227.68 luego esta 3479.68, 4.54, 221.79 luego esta 3495.31, 4.54, 226.39 y así infinitamente
