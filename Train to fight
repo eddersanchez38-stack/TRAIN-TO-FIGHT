@@ -103,12 +103,11 @@ local function MostrarMenuCompleto()
 
     -- ✅ TAMAÑO INICIAL ABIERTO — NO MINIMIZADO
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 220, 0, 440) -- Más alto para los enlaces
+    main.Size = UDim2.new(0, 220, 0, 440)
     main.Position = UDim2.new(0, 15, 0.25, 0)
     main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
     main.Active = true
     main.Draggable = true
-    main.ClipsDescendants = true
     main.Parent = gui
     Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
 
@@ -267,7 +266,7 @@ local function MostrarMenuCompleto()
     end)
 
     -- ==============================================
-    -- 🔗 SECCIÓN DE ENLACES OFICIALES AGREGADA
+    -- 🔗 SECCIÓN DE ENLACES OFICIALES
     -- ==============================================
     local Separador = Instance.new("Frame")
     Separador.Size = UDim2.new(0.92, 0, 0, 2)
@@ -297,6 +296,23 @@ local function MostrarMenuCompleto()
         btnLinkClave.Text = "✅ Copiado!"
         task.wait(1.5)
         btnLinkClave.Text = "🔑 Grupo Clave (Copiar)"
+    end)
+
+    -- ✅ SOLO AGREGADO ESTE BOTÓN NUEVO
+    local btnLinkPagina = Instance.new("TextButton")
+    btnLinkPagina.Size = UDim2.new(0.92, 0, 0, 30)
+    btnLinkPagina.BackgroundColor3 = Color3.fromRGB(30, 120, 200)
+    btnLinkPagina.Text = "🌐 PÁGINA OFICIAL DE SCRIPTS"
+    btnLinkPagina.TextColor3 = Color3.new(1,1,1)
+    btnLinkPagina.Font = Enum.Font.GothamSemibold
+    btnLinkPagina.TextSize = 11
+    btnLinkPagina.Parent = content
+    Instance.new("UICorner", btnLinkPagina).CornerRadius = UDim.new(0,6)
+    btnLinkPagina.MouseButton1Click:Connect(function()
+        setclipboard("https://eder2302-tocinacio23021.netlify.app")
+        btnLinkPagina.Text = "✅ Copiado!"
+        task.wait(1.5)
+        btnLinkPagina.Text = "🌐 PÁGINA OFICIAL DE SCRIPTS"
     end)
 
     local btnLinkToci = Instance.new("TextButton")
@@ -515,4 +531,4 @@ task.spawn(function()
     MostrarMenuCompleto()
 end)
 
-print("✅ EDER2302 & TOCINACIO23021 | ENLACES AGREGADOS | TODO FUNCIONAL")
+print("✅ EDER2302 & TOCINACIO23021 | BOTÓN PÁGINA OFICIAL AGREGADO")
