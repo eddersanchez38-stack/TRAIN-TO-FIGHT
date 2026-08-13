@@ -390,4 +390,3 @@ function CargarMenuPrincipal()
 
     print(txt.cargado)
 end
- Mira mejor en el auto farm agregale qué haiga un frame donde haiga trabajos en los que va a trabajar el auto farm, va a aver uno de Cleaner qe te va a llevar a esta cordenada y va a aceptar el trabajo y cuando lo acepte te lleve primero a esta 3519.97, 4.54, 254.71 luego después de 6 segundos a esta 3530.36, 4.54, 257.25 luego de otros 6 segundos a esta 3540.53, 4.54, 256.33 luego a esta 3527.63, 4.54, 241.79 luego esta 3513.26, 4.54, 240.54 luego esta 3486.47, 4.54, 238.02luego esta 3470.89, 4.54, 242.60 luego esta 3469.83, 4.54, 227.68 luego esta 3479.68, 4.54, 221.79 luego esta 3495.31, 4.54, 226.39 y así infinitamente
