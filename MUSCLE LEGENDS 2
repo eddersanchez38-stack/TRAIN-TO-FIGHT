@@ -1,4 +1,4 @@
--- EDER2302 & TOCINACIO23021
+-- ⚡ E&T Scripts | EDER2302 & TOCINACIO23021
 -- HUB MUSCLE LEGENDS 2 | + NUEVO CRISTAL AGREGADO
 
 local Players = game:GetService("Players")
@@ -117,7 +117,7 @@ local clientLabel = Instance.new("TextLabel")
 clientLabel.Size = UDim2.new(0, 320, 0, 32)
 clientLabel.Position = UDim2.new(0.5, -160, 0.14, 0)
 clientLabel.BackgroundTransparency = 1
-clientLabel.Text = "TOCINACIO-EDER CLIENT"
+clientLabel.Text = "⚡ E&T Scripts | TOCINACIO-EDER CLIENT"
 clientLabel.TextColor3 = Color3.fromRGB(200, 160, 255)
 clientLabel.TextSize = 18
 clientLabel.Font = Enum.Font.GothamBold
@@ -172,7 +172,7 @@ local titulo = Instance.new("TextLabel")
 titulo.Size = UDim2.new(1, -90, 0, 28)
 titulo.Position = UDim2.new(0, 14, 0, 4)
 titulo.BackgroundTransparency = 1
-titulo.Text = "EDER2302 & TOCINACIO23021"
+titulo.Text = "⚡ E&T Scripts | EDER2302 & TOCINACIO23021"
 titulo.TextColor3 = Color3.fromRGB(240, 240, 255)
 titulo.TextSize = 14
 titulo.Font = Enum.Font.GothamBold
@@ -685,4 +685,4 @@ spawn(function()
 	end
 end)
 
-print("✅ EDER2302 & TOCINACIO23021 | + Unlimited Secrets Crystal AGREGADO 💎")
+print("⚡ E&T Scripts | EDER2302 & TOCINACIO23021 | + Unlimited Secrets Crystal AGREGADO 💎")
