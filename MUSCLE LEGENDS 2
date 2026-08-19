@@ -1,0 +1,688 @@
+-- EDER2302 & TOCINACIO23021
+-- HUB MUSCLE LEGENDS 2 | + NUEVO CRISTAL AGREGADO
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+local pg = player:WaitForChild("PlayerGui")
+
+if pg:FindFirstChild("CristalHub") then
+	pg.CristalHub:Destroy()
+end
+if pg:FindFirstChild("AntiAfkTexto") then
+	pg.AntiAfkTexto:Destroy()
+end
+if pg:FindFirstChild("AutoHatchBtn") then
+	pg.AutoHatchBtn:Destroy()
+end
+if pg:FindFirstChild("AdvertenciaCristal") then
+	pg.AdvertenciaCristal:Destroy()
+end
+
+local rEvents = RS:FindFirstChild("rEvents")
+local openCrystalRemote = nil
+local autoEvolveRemote = nil
+local petEvolveEvent = nil
+local evolvePowerUpEvent = nil
+
+if rEvents then
+	openCrystalRemote = rEvents:FindFirstChild("openCrystalRemote")
+	autoEvolveRemote = rEvents:FindFirstChild("autoEvolveRemote")
+	petEvolveEvent = rEvents:FindFirstChild("petEvolveEvent")
+	evolvePowerUpEvent = rEvents:FindFirstChild("evolvePowerUpEvent")
+end
+
+-- ✅ LISTA ACTUALIZADA CON EL NUEVO CRISTAL
+local cristales = {
+	"Blue Crystal",
+	"Frost Crystal",
+	"Galaxy Oracle Crystal",
+	"Green Crystal",
+	"Inferno Crystal",
+	"Jungle Crystal",
+	"Legends Crystal",
+	"Muscle Elite Crystal",
+	"Mythical Crystal",
+	"Secret Void Crystal",
+	"Ultra Shockwave Crystal",
+	"Unlimited Secrets Crystal"  -- ✅ NUEVO CRISTAL AGREGADO
+}
+
+local cristalSeleccionado = nil
+local abriendo = false
+local autoEvolve = false
+local antiAfk = true
+local tiempoAntiAfk = 0
+local tiempoTotal = 0
+local mostrarTiempo = true
+local colorFase = 0
+local minimizado = false
+local miscAbierto = false
+
+-- AVISO
+local advertenciaGui = Instance.new("ScreenGui")
+advertenciaGui.Name = "AdvertenciaCristal"
+advertenciaGui.ResetOnSpawn = false
+advertenciaGui.Parent = pg
+
+local avisoLabel = Instance.new("TextLabel")
+avisoLabel.Size = UDim2.new(0, 280, 0, 50)
+avisoLabel.Position = UDim2.new(1, -300, 1, -70)
+avisoLabel.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+avisoLabel.Text = "⚠️ SELECCIONA UN CRYSTAL PRIMERO"
+avisoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+avisoLabel.TextSize = 16
+avisoLabel.Font = Enum.Font.GothamBold
+avisoLabel.TextStrokeTransparency = 0
+avisoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+avisoLabel.Visible = false
+avisoLabel.Parent = advertenciaGui
+
+local avisoCorner = Instance.new("UICorner")
+avisoCorner.CornerRadius = UDim.new(0, 10)
+avisoCorner.Parent = avisoLabel
+
+-- TEXTO ARRIBA
+local textoGui = Instance.new("ScreenGui")
+textoGui.Name = "AntiAfkTexto"
+textoGui.ResetOnSpawn = false
+textoGui.Parent = pg
+
+local antiAfkLabel = Instance.new("TextLabel")
+antiAfkLabel.Size = UDim2.new(0, 300, 0, 36)
+antiAfkLabel.Position = UDim2.new(0.5, -150, 0.04, 0)
+antiAfkLabel.BackgroundTransparency = 1
+antiAfkLabel.Text = "ANTI-AFK: 00:00:00"
+antiAfkLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
+antiAfkLabel.TextSize = 22
+antiAfkLabel.Font = Enum.Font.GothamBold
+antiAfkLabel.TextStrokeTransparency = 0
+antiAfkLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+antiAfkLabel.Parent = textoGui
+
+local tiempoLabel = Instance.new("TextLabel")
+tiempoLabel.Size = UDim2.new(0, 300, 0, 36)
+tiempoLabel.Position = UDim2.new(0.5, -150, 0.09, 0)
+tiempoLabel.BackgroundTransparency = 1
+tiempoLabel.Text = "TIEMPO JUGADO: 00:00:00"
+tiempoLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+tiempoLabel.TextSize = 18
+tiempoLabel.Font = Enum.Font.GothamBold
+tiempoLabel.TextStrokeTransparency = 0
+tiempoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+tiempoLabel.Parent = textoGui
+
+local clientLabel = Instance.new("TextLabel")
+clientLabel.Size = UDim2.new(0, 320, 0, 32)
+clientLabel.Position = UDim2.new(0.5, -160, 0.14, 0)
+clientLabel.BackgroundTransparency = 1
+clientLabel.Text = "TOCINACIO-EDER CLIENT"
+clientLabel.TextColor3 = Color3.fromRGB(200, 160, 255)
+clientLabel.TextSize = 18
+clientLabel.Font = Enum.Font.GothamBold
+clientLabel.TextStrokeTransparency = 0
+clientLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+clientLabel.Parent = textoGui
+
+-- GUI PRINCIPAL
+local gui = Instance.new("ScreenGui")
+gui.Name = "CristalHub"
+gui.ResetOnSpawn = false
+gui.Parent = pg
+
+local main = Instance.new("Frame")
+main.Name = "Panel"
+main.Size = UDim2.new(0, 340, 0, 760)
+main.Position = UDim2.new(0.02, 0, 0.10, 0)
+main.BackgroundColor3 = Color3.fromRGB(16, 16, 24)
+main.Active = true
+main.Draggable = true
+main.Parent = gui
+
+local cornerMain = Instance.new("UICorner")
+cornerMain.CornerRadius = UDim.new(0, 16)
+cornerMain.Parent = main
+
+local strokeMain = Instance.new("UIStroke")
+strokeMain.Color = Color3.fromRGB(70, 70, 110)
+strokeMain.Thickness = 1.8
+strokeMain.Transparency = 0.25
+strokeMain.Parent = main
+
+-- BARRA SUPERIOR
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 52)
+top.BackgroundColor3 = Color3.fromRGB(24, 24, 38)
+top.BorderSizePixel = 0
+top.Parent = main
+
+local cornerTop = Instance.new("UICorner")
+cornerTop.CornerRadius = UDim.new(0, 16)
+cornerTop.Parent = top
+
+local topFix = Instance.new("Frame")
+topFix.Size = UDim2.new(1, 0, 0, 20)
+topFix.Position = UDim2.new(0, 0, 1, -20)
+topFix.BackgroundColor3 = Color3.fromRGB(24, 24, 38)
+topFix.BorderSizePixel = 0
+topFix.Parent = top
+
+local titulo = Instance.new("TextLabel")
+titulo.Size = UDim2.new(1, -90, 0, 28)
+titulo.Position = UDim2.new(0, 14, 0, 4)
+titulo.BackgroundTransparency = 1
+titulo.Text = "EDER2302 & TOCINACIO23021"
+titulo.TextColor3 = Color3.fromRGB(240, 240, 255)
+titulo.TextSize = 14
+titulo.Font = Enum.Font.GothamBold
+titulo.TextXAlignment = Enum.TextXAlignment.Left
+titulo.Parent = top
+
+local subtitulo = Instance.new("TextLabel")
+subtitulo.Size = UDim2.new(1, -90, 0, 18)
+subtitulo.Position = UDim2.new(0, 14, 0, 28)
+subtitulo.BackgroundTransparency = 1
+subtitulo.Text = "MUSCLE LEGENDS 2 | " .. player.Name
+subtitulo.TextColor3 = Color3.fromRGB(160, 200, 255)
+subtitulo.TextSize = 11
+subtitulo.Font = Enum.Font.Gotham
+subtitulo.TextXAlignment = Enum.TextXAlignment.Left
+subtitulo.Parent = top
+
+local btnMin = Instance.new("TextButton")
+btnMin.Size = UDim2.new(0, 32, 0, 28)
+btnMin.Position = UDim2.new(1, -74, 0, 12)
+btnMin.BackgroundColor3 = Color3.fromRGB(40, 140, 70)
+btnMin.Text = "-"
+btnMin.TextColor3 = Color3.new(1, 1, 1)
+btnMin.TextSize = 20
+btnMin.Font = Enum.Font.GothamBold
+btnMin.AutoButtonColor = false
+btnMin.Parent = top
+
+local cornerMin = Instance.new("UICorner")
+cornerMin.CornerRadius = UDim.new(0, 8)
+cornerMin.Parent = btnMin
+
+local btnCerrar = Instance.new("TextButton")
+btnCerrar.Size = UDim2.new(0, 32, 0, 28)
+btnCerrar.Position = UDim2.new(1, -38, 0, 12)
+btnCerrar.BackgroundColor3 = Color3.fromRGB(170, 45, 55)
+btnCerrar.Text = "X"
+btnCerrar.TextColor3 = Color3.new(1, 1, 1)
+btnCerrar.TextSize = 18
+btnCerrar.Font = Enum.Font.GothamBold
+btnCerrar.AutoButtonColor = false
+btnCerrar.Parent = top
+
+local cornerCerrar = Instance.new("UICorner")
+cornerCerrar.CornerRadius = UDim.new(0, 8)
+cornerCerrar.Parent = btnCerrar
+
+-- CONTENIDO
+local contenido = Instance.new("Frame")
+contenido.Size = UDim2.new(1, -24, 0, 690)
+contenido.Position = UDim2.new(0, 12, 0, 60)
+contenido.BackgroundTransparency = 1
+contenido.Parent = main
+
+local antiMenu = Instance.new("TextLabel")
+antiMenu.Size = UDim2.new(1, 0, 0, 22)
+antiMenu.Position = UDim2.new(0, 0, 0, 4)
+antiMenu.BackgroundTransparency = 1
+antiMenu.Text = "ANTI-AFK: 00:00:00"
+antiMenu.TextColor3 = Color3.fromRGB(80, 255, 130)
+antiMenu.TextSize = 13
+antiMenu.Font = Enum.Font.GothamBold
+antiMenu.Parent = contenido
+
+local totalMenu = Instance.new("TextLabel")
+totalMenu.Size = UDim2.new(1, 0, 0, 22)
+totalMenu.Position = UDim2.new(0, 0, 0, 26)
+totalMenu.BackgroundTransparency = 1
+totalMenu.Text = "TIEMPO JUGADO: 00:00:00"
+totalMenu.TextColor3 = Color3.fromRGB(255, 215, 0)
+totalMenu.TextSize = 13
+totalMenu.Font = Enum.Font.GothamBold
+totalMenu.Parent = contenido
+
+local estado = Instance.new("TextLabel")
+estado.Size = UDim2.new(1, 0, 0, 22)
+estado.Position = UDim2.new(0, 0, 0, 52)
+estado.BackgroundTransparency = 1
+if openCrystalRemote then
+	estado.Text = "Selecciona un cristal"
+	estado.TextColor3 = Color3.fromRGB(255, 180, 60)
+else
+	estado.Text = "Sin conexion"
+	estado.TextColor3 = Color3.fromRGB(255, 80, 80)
+end
+estado.TextSize = 12
+estado.Font = Enum.Font.Gotham
+estado.Parent = contenido
+
+local function crearBoton(texto, posY, color)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 38)
+	btn.Position = UDim2.new(0, 0, 0, posY)
+	btn.BackgroundColor3 = color
+	btn.Text = texto
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.TextSize = 13
+	btn.Font = Enum.Font.GothamBold
+	btn.AutoButtonColor = false
+	btn.Parent = contenido
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 9)
+	return btn
+end
+
+-- BOTONES PRINCIPALES
+local btnAnti = crearBoton("ANTI-AFK: ON", 80, Color3.fromRGB(30, 115, 65))
+local btnTiempo = crearBoton("MOSTRAR TIEMPO: ON", 124, Color3.fromRGB(155, 125, 25))
+local btnEvolve = crearBoton("🧬 AUTO EVOLVE: OFF", 168, Color3.fromRGB(180, 70, 140))
+local btnAutoHatchToggle = crearBoton("ACTIVAR BOTÓN AUTO HATCH: OFF", 212, Color3.fromRGB(80, 50, 140))
+local btnMisc = crearBoton("🎭 MISC | TROLLEAR", 256, Color3.fromRGB(220, 120, 40))
+local btnTroll = crearBoton("😈 TROLL (NO TOQUES)", 300, Color3.fromRGB(220, 40, 40))
+
+-- SECCION MISC
+local miscFrame = Instance.new("Frame")
+miscFrame.Size = UDim2.new(1, 0, 0, 120)
+miscFrame.Position = UDim2.new(0, 0, 0, 344)
+miscFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+miscFrame.Visible = false
+miscFrame.Parent = contenido
+Instance.new("UICorner", miscFrame).CornerRadius = UDim.new(0, 10)
+
+local btnFlyAll = Instance.new("TextButton")
+btnFlyAll.Size = UDim2.new(1, -16, 0, 32)
+btnFlyAll.Position = UDim2.new(0, 8, 0, 8)
+btnFlyAll.BackgroundColor3 = Color3.fromRGB(160, 80, 220)
+btnFlyAll.Text = "🚀 SACAR A TODOS VOLANDO"
+btnFlyAll.TextColor3 = Color3.new(1,1,1)
+btnFlyAll.TextSize = 12
+btnFlyAll.Font = Enum.Font.GothamBold
+btnFlyAll.AutoButtonColor = false
+btnFlyAll.Parent = miscFrame
+Instance.new("UICorner", btnFlyAll).CornerRadius = UDim.new(0, 8)
+
+local btnKickMe = Instance.new("TextButton")
+btnKickMe.Size = UDim2.new(1, -16, 0, 32)
+btnKickMe.Position = UDim2.new(0, 8, 0, 48)
+btnKickMe.BackgroundColor3 = Color3.fromRGB(200, 60, 100)
+btnKickMe.Text = "💢 SACARME A MI (Broma)"
+btnKickMe.TextColor3 = Color3.new(1,1,1)
+btnKickMe.TextSize = 12
+btnKickMe.Font = Enum.Font.GothamBold
+btnKickMe.AutoButtonColor = false
+btnKickMe.Parent = miscFrame
+Instance.new("UICorner", btnKickMe).CornerRadius = UDim.new(0, 8)
+
+local btnExplode = Instance.new("TextButton")
+btnExplode.Size = UDim2.new(1, -16, 0, 32)
+btnExplode.Position = UDim2.new(0, 8, 0, 88)
+btnExplode.BackgroundColor3 = Color3.fromRGB(220, 100, 40)
+btnExplode.Text = "💥 EXPLOTAR A TODOS"
+btnExplode.TextColor3 = Color3.new(1,1,1)
+btnExplode.TextSize = 12
+btnExplode.Font = Enum.Font.GothamBold
+btnExplode.AutoButtonColor = false
+btnExplode.Parent = miscFrame
+Instance.new("UICorner", btnExplode).CornerRadius = UDim.new(0, 8)
+
+-- LISTA DE CRISTALES
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 0, 200)
+scroll.Position = UDim2.new(0, 0, 0, 470)
+scroll.BackgroundColor3 = Color3.fromRGB(26, 26, 40)
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 8
+scroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150)
+scroll.ScrollBarImageTransparency = 0.1
+scroll.CanvasSize = UDim2.new(0, 0, 0, #cristales * 39)
+scroll.Parent = contenido
+
+local cornerScroll = Instance.new("UICorner")
+cornerScroll.CornerRadius = UDim.new(0, 12)
+cornerScroll.Parent = scroll
+
+local strokeScroll = Instance.new("UIStroke")
+strokeScroll.Color = Color3.fromRGB(55, 55, 85)
+strokeScroll.Thickness = 1.2
+strokeScroll.Transparency = 0.35
+strokeScroll.Parent = scroll
+
+local list = Instance.new("UIListLayout")
+list.Padding = UDim.new(0, 5)
+list.Parent = scroll
+
+local pad = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 8)
+pad.PaddingBottom = UDim.new(0, 8)
+pad.PaddingLeft = UDim.new(0, 8)
+pad.PaddingRight = UDim.new(0, 8)
+pad.Parent = scroll
+
+local botones = {}
+
+for i, nombre in ipairs(cristales) do
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1, -16, 0, 34)
+	b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+	b.Text = "  " .. nombre
+	b.TextColor3 = Color3.fromRGB(220, 220, 240)
+	b.TextSize = 13
+	b.Font = Enum.Font.Gotham
+	b.TextXAlignment = Enum.TextXAlignment.Left
+	b.AutoButtonColor = false
+	b.Parent = scroll
+
+	local cornerB = Instance.new("UICorner")
+	cornerB.CornerRadius = UDim.new(0, 8)
+	cornerB.Parent = b
+
+	botones[nombre] = b
+
+	b.MouseButton1Click:Connect(function()
+		for _, v in pairs(botones) do
+			v.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+		end
+		cristalSeleccionado = nombre
+		b.BackgroundColor3 = Color3.fromRGB(30, 115, 65)
+		estado.Text = "✅ Seleccionado: " .. nombre
+		estado.TextColor3 = Color3.fromRGB(80, 255, 130)
+		avisoLabel.Visible = false
+	end)
+end
+
+-- BOTON FLOTANTE
+local hatchGui = Instance.new("ScreenGui")
+hatchGui.Name = "AutoHatchBtn"
+hatchGui.ResetOnSpawn = false
+hatchGui.Enabled = false
+hatchGui.Parent = pg
+
+local hatchBtn = Instance.new("TextButton")
+hatchBtn.Size = UDim2.new(0, 140, 0, 50)
+hatchBtn.Position = UDim2.new(0.75, 0, 0.4, 0)
+hatchBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+hatchBtn.Text = "AUTO HATCH\nOFF"
+hatchBtn.TextColor3 = Color3.new(1, 1, 1)
+hatchBtn.TextSize = 14
+hatchBtn.Font = Enum.Font.GothamBold
+hatchBtn.AutoButtonColor = false
+hatchBtn.Active = true
+hatchBtn.Draggable = true
+hatchBtn.Parent = hatchGui
+
+local cornerHatch = Instance.new("UICorner")
+cornerHatch.CornerRadius = UDim.new(0, 12)
+cornerHatch.Parent = hatchBtn
+
+local strokeHatch = Instance.new("UIStroke")
+strokeHatch.Color = Color3.fromRGB(180, 100, 255)
+strokeHatch.Thickness = 2
+strokeHatch.Parent = hatchBtn
+
+-- MINIMIZAR / CERRAR
+btnMin.MouseButton1Click:Connect(function()
+	minimizado = not minimizado
+	if minimizado then
+		contenido.Visible = false
+		main.Size = UDim2.new(0, 340, 0, 52)
+		btnMin.Text = "+"
+	else
+		contenido.Visible = true
+		main.Size = UDim2.new(0, 340, 0, 760)
+		btnMin.Text = "-"
+	end
+end)
+
+btnCerrar.MouseButton1Click:Connect(function()
+	gui:Destroy()
+	textoGui:Destroy()
+	hatchGui:Destroy()
+	advertenciaGui:Destroy()
+end)
+
+-- FUNCIONES DE BOTONES
+btnAnti.MouseButton1Click:Connect(function()
+	antiAfk = not antiAfk
+	if antiAfk then
+		tiempoAntiAfk = 0
+		btnAnti.Text = "ANTI-AFK: ON"
+		btnAnti.BackgroundColor3 = Color3.fromRGB(30, 115, 65)
+		antiAfkLabel.Visible = true
+	else
+		btnAnti.Text = "ANTI-AFK: OFF"
+		btnAnti.BackgroundColor3 = Color3.fromRGB(130, 40, 50)
+		antiAfkLabel.Visible = false
+	end
+end)
+
+btnTiempo.MouseButton1Click:Connect(function()
+	mostrarTiempo = not mostrarTiempo
+	if mostrarTiempo then
+		btnTiempo.Text = "MOSTRAR TIEMPO: ON"
+		btnTiempo.BackgroundColor3 = Color3.fromRGB(155, 125, 25)
+		tiempoLabel.Visible = true
+	else
+		btnTiempo.Text = "MOSTRAR TIEMPO: OFF"
+		btnTiempo.BackgroundColor3 = Color3.fromRGB(100, 85, 20)
+		tiempoLabel.Visible = false
+	end
+end)
+
+btnEvolve.MouseButton1Click:Connect(function()
+	autoEvolve = not autoEvolve
+	if autoEvolve then
+		if not autoEvolveRemote then
+			estado.Text = "⚠️ autoEvolveRemote NO ENCONTRADO"
+			estado.TextColor3 = Color3.fromRGB(255, 80, 80)
+			task.wait(2.5)
+			autoEvolve = false
+			return
+		end
+		btnEvolve.Text = "🧬 AUTO EVOLVE: ON"
+		btnEvolve.BackgroundColor3 = Color3.fromRGB(70, 180, 120)
+		estado.Text = "✅ Auto Evolve Activado"
+		estado.TextColor3 = Color3.fromRGB(80, 255, 130)
+	else
+		btnEvolve.Text = "🧬 AUTO EVOLVE: OFF"
+		btnEvolve.BackgroundColor3 = Color3.fromRGB(180, 70, 140)
+		estado.Text = "Auto Evolve Desactivado"
+		estado.TextColor3 = Color3.fromRGB(255, 180, 60)
+	end
+end)
+
+btnAutoHatchToggle.MouseButton1Click:Connect(function()
+	autoHatchVisible = not autoHatchVisible
+	if autoHatchVisible then
+		btnAutoHatchToggle.Text = "ACTIVAR BOTÓN AUTO HATCH: ON"
+		btnAutoHatchToggle.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+		hatchGui.Enabled = true
+	else
+		btnAutoHatchToggle.Text = "ACTIVAR BOTÓN AUTO HATCH: OFF"
+		btnAutoHatchToggle.BackgroundColor3 = Color3.fromRGB(80, 50, 140)
+		hatchGui.Enabled = false
+		abriendo = false
+		hatchBtn.Text = "AUTO HATCH\nOFF"
+	end
+end)
+
+-- SECCION MISC
+btnMisc.MouseButton1Click:Connect(function()
+	miscAbierto = not miscAbierto
+	miscFrame.Visible = miscAbierto
+	btnMisc.Text = miscAbierto and "🎭 MISC | CERRAR" or "🎭 MISC | TROLLEAR"
+	btnMisc.BackgroundColor3 = miscAbierto and Color3.fromRGB(160, 90, 30) or Color3.fromRGB(220, 120, 40)
+end)
+
+-- BOTON TROLL
+btnTroll.MouseButton1Click:Connect(function()
+	pcall(function()
+		StarterGui:SetCore("Notification", {
+			Title = "😈 POR CURIOSO 😈";
+			Text = "POR CURIOSO JAJAJA JAJAJAJAJA";
+			Duration = 5;
+		})
+	end)
+	task.wait(3)
+	player:Kick("POR CURIOSO JAJAJA JAJAJAJAJA")
+end)
+
+-- TROLLEAR GENTE
+btnFlyAll.MouseButton1Click:Connect(function()
+	for _, v in pairs(Players:GetPlayers()) do
+		if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+			coroutine.wrap(function()
+				for i = 1, 150 do
+					pcall(function()
+						v.Character.HumanoidRootPart.CFrame += Vector3.new(0, 0.8, 0)
+					end)
+					task.wait(0.01)
+				end
+			end)()
+		end
+	end
+	estado.Text = "🚀 Todos volando!"
+	estado.TextColor3 = Color3.fromRGB(80, 255, 130)
+	task.wait(2)
+	estado.Text = "Selecciona un cristal"
+	estado.TextColor3 = Color3.fromRGB(255, 180, 60)
+end)
+
+btnExplode.MouseButton1Click:Connect(function()
+	for _, v in pairs(Players:GetPlayers()) do
+		if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+			pcall(function()
+				local pos = v.Character.HumanoidRootPart.Position
+				v.Character.HumanoidRootPart.CFrame = CFrame.new(pos) * CFrame.new(0, 30, 0)
+				v.Character.Humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
+			end)
+		end
+	end
+	estado.Text = "💥 ¡BOOM! 💥"
+	estado.TextColor3 = Color3.fromRGB(255, 80, 80)
+	task.wait(2)
+	estado.Text = "Selecciona un cristal"
+	estado.TextColor3 = Color3.fromRGB(255, 180, 60)
+end)
+
+btnKickMe.MouseButton1Click:Connect(function()
+	estado.Text = "😈 ¡Te lo dije! 😈"
+	estado.TextColor3 = Color3.fromRGB(255, 80, 80)
+	task.wait(2)
+	estado.Text = "Jaja era broma 😂"
+	estado.TextColor3 = Color3.fromRGB(80, 255, 130)
+	task.wait(2)
+	estado.Text = "Selecciona un cristal"
+	estado.TextColor3 = Color3.fromRGB(255, 180, 60)
+end)
+
+hatchBtn.MouseButton1Click:Connect(function()
+	if not abriendo then
+		if not cristalSeleccionado then
+			avisoLabel.Visible = true
+			task.wait(3)
+			avisoLabel.Visible = false
+			return
+		end
+		abriendo = true
+		hatchBtn.Text = "AUTO HATCH\nON"
+		estado.Text = "✅ Abriendo: " .. cristalSeleccionado
+		estado.TextColor3 = Color3.fromRGB(80, 255, 130)
+	else
+		abriendo = false
+		hatchBtn.Text = "AUTO HATCH\nOFF"
+		estado.Text = "Selecciona un cristal"
+		estado.TextColor3 = Color3.fromRGB(255, 180, 60)
+	end
+end)
+
+-- LOOP PRINCIPAL
+spawn(function()
+	while wait(0.04) do
+		colorFase = colorFase + 0.07
+
+		local r = math.floor(math.sin(colorFase) * 127 + 128)
+		local g = math.floor(math.sin(colorFase + 2) * 127 + 128)
+		local b = math.floor(math.sin(colorFase + 4) * 127 + 128)
+		local col = Color3.fromRGB(r, g, b)
+
+		local r2 = math.floor(math.sin(colorFase + 1.5) * 127 + 128)
+		local g2 = math.floor(math.sin(colorFase + 3.5) * 127 + 128)
+		local b2 = math.floor(math.sin(colorFase + 5.5) * 127 + 128)
+		local col2 = Color3.fromRGB(r2, g2, b2)
+
+		titulo.TextColor3 = col
+		subtitulo.TextColor3 = col2
+		clientLabel.TextColor3 = col
+		strokeMain.Color = col
+		strokeScroll.Color = col2
+		scroll.ScrollBarImageColor3 = col
+		strokeHatch.Color = col
+		hatchBtn.BackgroundColor3 = Color3.fromRGB(math.clamp(r - 30, 40, 255), math.clamp(g - 50, 20, 255), math.clamp(b - 10, 80, 255))
+
+		if antiAfk then
+			antiMenu.TextColor3 = col
+			antiAfkLabel.TextColor3 = col
+		end
+		totalMenu.TextColor3 = col2
+		tiempoLabel.TextColor3 = col2
+
+		if antiAfk then
+			tiempoAntiAfk = tiempoAntiAfk + 0.04
+		end
+		tiempoTotal = tiempoTotal + 0.04
+
+		local s1 = math.floor(tiempoAntiAfk)
+		local h1 = math.floor(s1 / 3600)
+		local m1 = math.floor((s1 % 3600) / 60)
+		local sec1 = s1 % 60
+		local t1 = string.format("%02d:%02d:%02d", h1, m1, sec1)
+
+		local s2 = math.floor(tiempoTotal)
+		local h2 = math.floor(s2 / 3600)
+		local m2 = math.floor((s2 % 3600) / 60)
+		local sec2 = s2 % 60
+		local t2 = string.format("%02d:%02d:%02d", h2, m2, sec2)
+
+		if antiAfk then
+			antiMenu.Text = "ANTI-AFK: " .. t1
+			antiAfkLabel.Text = "ANTI-AFK: " .. t1
+		else
+			antiMenu.TextColor3 = Color3.fromRGB(110, 110, 110)
+			antiMenu.Text = "ANTI-AFK: " .. t1 .. " (pausado)"
+		end
+
+		totalMenu.Text = "TIEMPO JUGADO: " .. t2
+		if mostrarTiempo then
+			tiempoLabel.Text = "TIEMPO JUGADO: " .. t2
+		end
+
+		if antiAfk and s1 % 50 == 0 then
+			pcall(function()
+				local cam = workspace.CurrentCamera
+				cam.CFrame = cam.CFrame * CFrame.Angles(math.rad(0.5), 0, 0)
+				wait(0.08)
+				cam.CFrame = cam.CFrame * CFrame.Angles(math.rad(-0.5), 0, 0)
+			end)
+		end
+
+		if abriendo and cristalSeleccionado and openCrystalRemote then
+			pcall(function()
+				openCrystalRemote:InvokeServer("openCrystal", cristalSeleccionado, 1)
+			end)
+		end
+
+		if autoEvolve and autoEvolveRemote then
+			pcall(function()
+				autoEvolveRemote:InvokeServer()
+			end)
+			task.wait(1.2)
+		end
+	end
+end)
+
+print("✅ EDER2302 & TOCINACIO23021 | + Unlimited Secrets Crystal AGREGADO 💎")
