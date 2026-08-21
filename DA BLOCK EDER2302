@@ -1,392 +1,467 @@
--- Da Block HUB | + Sistema de Idiomas Completo
+-- -- EDER2302 PANEL FASE BETA | Hecho también por TOCINACIO23021 (Rayfield + Key System + Config)
+-- ADVERTENCIA: Viola los Términos de Servicio de Roblox. Úsalo bajo tu propia responsabilidad.
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
--- ------------------------------
--- SISTEMA DE TRADUCCIONES (22 IDIOMAS)
--- ------------------------------
-local traducciones = {
-    es = {
-        selIdioma = "Selecciona tu idioma",
-        titulo = "Da Block HUB",
-        velocidad = "WalkSpeed: ",
-        volar = "Fly: ",
-        noclip = "Noclip: ",
-        dios = "Godmode: ",
-        granja = "Auto Farm: ",
-        tpLoc = "TP Locations ",
-        minimizar = "Minimizar Menú",
-        restaurar = "Restaurar Menú",
-        cerrar = "Cerrar HUB",
-        cargado = "✅ HUB cargado. Pulsa 'TP Locations' para abrir las ubicaciones."
+-- ==================== VENTANA PRINCIPAL (RAYFIELD + KEY SYSTEM) ====================
+local Window = Rayfield:CreateWindow({
+    Name = "💎 EDER2302 PANEL FASE BETA",
+    LoadingTitle = "EDER2302 & TOCINACIO23021 Hub",
+    LoadingSubtitle = "Cargando interfaz...",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "EderHubConfigs",
+        FileName = "ConfigPanelEDER"
     },
-    en = {
-        selIdioma = "Select your language",
-        titulo = "Da Block HUB",
-        velocidad = "WalkSpeed: ",
-        volar = "Fly: ",
-        noclip = "Noclip: ",
-        dios = "Godmode: ",
-        granja = "Auto Farm: ",
-        tpLoc = "TP Locations ",
-        minimizar = "Minimize Menu",
-        restaurar = "Restore Menu",
-        cerrar = "Close HUB",
-        cargado = "✅ HUB loaded. Click 'TP Locations' to open locations."
+    Discord = {
+        Enabled = true,
+        Invite = "Cn5IwKTTcsf49PushVJ3LX",
+        RememberJoins = true
     },
-    pt = {
-        selIdioma = "Selecione seu idioma",
-        titulo = "Da Block HUB",
-        velocidad = "Velocidade: ",
-        volar = "Voar: ",
-        noclip = "Noclip: ",
-        dios = "Modo Deus: ",
-        granja = "Auto Fazenda: ",
-        tpLoc = "Locais TP ",
-        minimizar = "Minimizar Menu",
-        restaurar = "Restaurar Menu",
-        cerrar = "Fechar HUB",
-        cargado = "✅ HUB carregado. Clique em 'TP Locations' para abrir locais."
-    },
-    fr = {
-        selIdioma = "Choisissez votre langue",
-        titulo = "Da Block HUB",
-        velocidad = "Vitesse: ",
-        volar = "Voler: ",
-        noclip = "Noclip: ",
-        dios = "Mode Dieu: ",
-        granja = "Auto Ferme: ",
-        tpLoc = "Emplacements TP ",
-        minimizar = "Réduire le menu",
-        restaurar = "Restaurer le menu",
-        cerrar = "Fermer HUB",
-        cargado = "✅ HUB chargé. Cliquez sur 'TP Locations' pour ouvrir les emplacements."
-    },
-    de = {
-        selIdioma = "Wähle deine Sprache",
-        titulo = "Da Block HUB",
-        velocidad = "Geschwindigkeit: ",
-        volar = "Fliegen: ",
-        noclip = "Noclip: ",
-        dios = "Gottmodus: ",
-        granja = "Auto Farm: ",
-        tpLoc = "TP Orte ",
-        minimizar = "Menü minimieren",
-        restaurar = "Menü wiederherstellen",
-        cerrar = "HUB schließen",
-        cargado = "✅ HUB geladen. Klicke auf 'TP Locations' um Orte zu öffnen."
-    },
-    it = {
-        selIdioma = "Scegli la lingua",
-        titulo = "Da Block HUB",
-        velocidad = "Velocità: ",
-        volar = "Volare: ",
-        noclip = "Noclip: ",
-        dios = "Modalità Dio: ",
-        granja = "Auto Fattoria: ",
-        tpLoc = "Posizioni TP ",
-        minimizar = "Riduci menu",
-        restaurar = "Ripristina menu",
-        cerrar = "Chiudi HUB",
-        cargado = "✅ HUB caricato. Clicca 'TP Locations' per aprire le posizioni."
-    },
-    ru = {
-        selIdioma = "Выберите язык",
-        titulo = "Da Block HUB",
-        velocidad = "Скорость: ",
-        volar = "Полёт: ",
-        noclip = "Ноклип: ",
-        dios = "Бессмертие: ",
-        granja = "Авто-Фарм: ",
-        tpLoc = "Локации ТП ",
-        minimizar = "Свернуть меню",
-        restaurar = "Развернуть меню",
-        cerrar = "Закрыть HUB",
-        cargado = "✅ HUB загружен. Нажмите 'TP Locations' для открытия локаций."
-    },
-    ja = {
-        selIdioma = "言語を選択",
-        titulo = "Da Block HUB",
-        velocidad = "移動速度: ",
-        volar = "飛行: ",
-        noclip = "ノクリップ: ",
-        dios = "無敵: ",
-        granja = "自動収集: ",
-        tpLoc = "テレポート先 ",
-        minimizar = "メニューを最小化",
-        restaurar = "メニューを復元",
-        cerrar = "閉じる",
-        cargado = "✅ HUB読み込み完了。'TP Locations'をクリックして場所を開く。"
-    },
-    ko = {
-        selIdioma = "언어 선택",
-        titulo = "Da Block HUB",
-        velocidad = "이동 속도: ",
-        volar = "비행: ",
-        noclip = "노클립: ",
-        dios = "무적: ",
-        granja = "자동 파밍: ",
-        tpLoc = "텔레포트 위치 ",
-        minimizar = "메뉴 최소화",
-        restaurar = "메뉴 복원",
-        cerrar = "닫기",
-        cargado = "✅ HUB 로드 완료. 'TP Locations'를 클릭하여 위치를 여세요."
-    },
-    zh = {
-        selIdioma = "选择语言",
-        titulo = "Da Block HUB",
-        velocidad = "移动速度: ",
-        volar = "飞行: ",
-        noclip = "穿墙: ",
-        dios = "无敌: ",
-        granja = "自动刷取: ",
-        tpLoc = "传送点 ",
-        minimizar = "最小化菜单",
-        restaurar = "恢复菜单",
-        cerrar = "关闭",
-        cargado = "✅ HUB 加载完成。点击 'TP Locations' 打开位置。"
-    },
-    ar = {selIdioma = "اختر لغتك", titulo = "Da Block HUB", velocidad = "السرعة: ", volar = "الطيران: ", noclip = "تخطي الجدران: ", dios = "وضع الإله: ", granja = "زراعة تلقائية: ", tpLoc = "مواقع النقل ", minimizar = "تصغير القائمة", restaurar = "استعادة القائمة", cerrar = "إغلاق", cargado = "✅ تم التحميل. اضغط 'TP Locations' لفتح المواقع."},
-    hi = {selIdioma = "भाषा चुनें", titulo = "Da Block HUB", velocidad = "गति: ", volar = "उड़ान: ", noclip = "नोक्लिप: ", dios = "ईश्वर मोड: ", granja = "ऑटो फार्म: ", tpLoc = "टीपी स्थान ", minimizar = "मेनू छोटा करें", restaurar = "मेनू वापस लाएं", cerrar = "बंद करें", cargado = "✅ तैयार है। 'TP Locations' पर क्लिक करें।"},
-    tr = {selIdioma = "Dil seçin", titulo = "Da Block HUB", velocidad = "Hız: ", volar = "Uçuş: ", noclip = "Duvar Geçme: ", dios = "Tanrı Modu: ", granja = "Otomatik Farm: ", tpLoc = "TP Konumları ", minimizar = "Menüyü küçült", restaurar = "Menüyü geri yükle", cerrar = "Kapat", cargado = "✅ Yüklendi. Konumları açmak için 'TP Locations' tıklayın."},
-    pl = {selIdioma = "Wybierz język", titulo = "Da Block HUB", velocidad = "Prędkość: ", volar = "Lot: ", noclip = "Noklip: ", dios = "Tryb Boga: ", granja = "Auto Farma: ", tpLoc = "Miejsca TP ", minimizar = "Minimalizuj menu", restaurar = "Przywróć menu", cerrar = "Zamknij", cargado = "✅ Gotowe. Kliknij 'TP Locations' aby otworzyć miejsca."},
-    nl = {selIdioma = "Kies taal", titulo = "Da Block HUB", velocidad = "Snelheid: ", volar = "Vliegen: ", noclip = "Noclip: ", dios = "Godmodus: ", granja = "Auto Farm: ", tpLoc = "TP Locaties ", minimizar = "Menu minimaliseren", restaurar = "Menu herstellen", cerrar = "Sluiten", cargado = "✅ Geladen. Klik 'TP Locations' om locaties te openen."},
-    sv = {selIdioma = "Välj språk", titulo = "Da Block HUB", velocidad = "Hastighet: ", volar = "Flyga: ", noclip = "Noklipp: ", dios = "Gudläge: ", granja = "Auto Farm: ", tpLoc = "TP Platser ", minimizar = "Minimera meny", restaurar = "Återställ meny", cerrar = "Stäng", cargado = "✅ Klar. Klicka 'TP Locations' för att öppna platser."},
-    fi = {selIdioma = "Valitse kieli", titulo = "Da Block HUB", velocidad = "Nopeus: ", volar = "Lentäminen: ", noclip = "Noklip: ", dios = "Jumalatila: ", granja = "Automaattinen tila: ", tpLoc = "TP Sijainnit ", minimizar = "Pienennä valikko", restaurar = "Palauta valikko", cerrar = "Sulje", cargado = "✅ Valmis. Avaa sijainnit klikkaamalla 'TP Locations'."},
-    da = {selIdioma = "Vælg sprog", titulo = "Da Block HUB", velocidad = "Hastighed: ", volar = "Flyv: ", noclip = "Noklip: ", dios = "Gudtilstand: ", granja = "Auto Farm: ", tpLoc = "TP Steder ", minimizar = "Minimer menu", restaurar = "Gendan menu", cerrar = "Luk", cargado = "✅ Indlæst. Klik 'TP Locations' for at åbne steder."},
-    no = {selIdioma = "Velg språk", titulo = "Da Block HUB", velocidad = "Hastighet: ", volar = "Fly: ", noclip = "Noklip: ", dios = "Gudmodus: ", granja = "Auto Farm: ", tpLoc = "TP Steder ", minimizar = "Minimer meny", restaurar = "Gjenopprett meny", cerrar = "Lukk", cargado = "✅ Klar. Klikk 'TP Locations' for å åpne steder."},
-    cs = {selIdioma = "Vyberte jazyk", titulo = "Da Block HUB", velocidad = "Rychlost: ", volar = "Let: ", noclip = "Noklip: ", dios = "Božský mód: ", granja = "Auto Farma: ", tpLoc = "TP Místa ", minimizar = "Minimalizovat menu", restaurar = "Obnovit menu", cerrar = "Zavřít", cargado = "✅ Připraveno. Kliknutím 'TP Locations' otevřete místa."},
-    hu = {selIdioma = "Válassz nyelvet", titulo = "Da Block HUB", velocidad = "Sebesség: ", volar = "Repülés: ", noclip = "Noklip: ", dios = "Isten Mód: ", granja = "Auto Farm: ", tpLoc = "TP Helyek ", minimizar = "Menü kicsinyítés", restaurar = "Menü visszaállítás", cerrar = "Bezárás", cargado = "✅ Kész. Kattints a 'TP Locations' gombra a helyek megnyitásához."},
-    ro = {selIdioma = "Alege limba", titulo = "Da Block HUB", velocidad = "Viteză: ", volar = "Zbor: ", noclip = "Noclip: ", dios = "Mod Dumnezeu: ", granja = "Auto Fermă: ", tpLoc = "Locații TP ", minimizar = "Minimizează meniul", restaurar = "Restaurează meniul", cerrar = "Închide", cargado = "✅ Gata. Apasă 'TP Locations' pentru a deschide locațiile."}
-}
-
-local idiomaElegido, txt = nil, nil
-
--- ------------------------------
--- PANTALLA DE SELECCIÓN DE IDIOMA
--- ------------------------------
-local pantallaIdioma = Instance.new("ScreenGui")
-pantallaIdioma.ResetOnSpawn = false
-pantallaIdioma.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-pantallaIdioma.Parent = playerGui
-
-local fondoSel = Instance.new("Frame")
-fondoSel.Size = UDim2.new(0, 500, 0, 500)
-fondoSel.Position = UDim2.new(0.5, -250, 0.5, -250)
-fondoSel.BackgroundColor3 = Color3.fromRGB(22,22,28)
-fondoSel.Active = true
-fondoSel.Parent = pantallaIdioma
-
-local tituloSel = Instance.new("TextLabel")
-tituloSel.Size = UDim2.new(1,0,0,60)
-tituloSel.BackgroundColor3 = Color3.fromRGB(180,0,40)
-tituloSel.Text = traducciones.es.selIdioma
-tituloSel.TextColor3 = Color3.new(1,1,1)
-tituloSel.TextScaled = true
-tituloSel.Parent = fondoSel
-
-local scrollIdiomas = Instance.new("ScrollingFrame")
-scrollIdiomas.Size = UDim2.new(1,-20,1,-70)
-scrollIdiomas.Position = UDim2.new(0,10,0,70)
-scrollIdiomas.BackgroundTransparency = 1
-scrollIdiomas.ScrollBarThickness = 8
-scrollIdiomas.Parent = fondoSel
-
-local layoutIdiomas = Instance.new("UIListLayout")
-layoutIdiomas.Padding = UDim.new(0,10)
-layoutIdiomas.Parent = scrollIdiomas
-
-local idiomasDisponibles = {
-    {codigo="es", nombre="🇪🇸 Español"}, {codigo="en", nombre="🇺🇸 English"},
-    {codigo="pt", nombre="🇧🇷 Português"}, {codigo="fr", nombre="🇫🇷 Français"},
-    {codigo="de", nombre="🇩🇪 Deutsch"}, {codigo="it", nombre="🇮🇹 Italiano"},
-    {codigo="ru", nombre="🇷🇺 Русский"}, {codigo="ja", nombre="🇯🇵 日本語"},
-    {codigo="ko", nombre="🇰🇷 한국어"}, {codigo="zh", nombre="🇨🇳 中文"},
-    {codigo="ar", nombre="🇸🇦 العربية"}, {codigo="hi", nombre="🇮🇳 हिन्दी"},
-    {codigo="tr", nombre="🇹🇷 Türkçe"}, {codigo="pl", nombre="🇵🇱 Polski"},
-    {codigo="nl", nombre="🇳🇱 Nederlands"}, {codigo="sv", nombre="🇸🇪 Svenska"},
-    {codigo="fi", nombre="🇫🇮 Suomi"}, {codigo="da", nombre="🇩🇰 Dansk"},
-    {codigo="no", nombre="🇳🇴 Norsk"}, {codigo="cs", nombre="🇨🇿 Čeština"},
-    {codigo="hu", nombre="🇭🇺 Magyar"}, {codigo="ro", nombre="🇷🇴 Română"}
-}
-
-for _, idioma in pairs(idiomasDisponibles) do
-    local btnIdioma = Instance.new("TextButton")
-    btnIdioma.Size = UDim2.new(1,-10,0,50)
-    btnIdioma.BackgroundColor3 = Color3.fromRGB(40,40,50)
-    btnIdioma.Text = idioma.nombre
-    btnIdioma.TextColor3 = Color3.new(1,1,1)
-    btnIdioma.TextScaled = true
-    btnIdioma.Parent = scrollIdiomas
-    
-    btnIdioma.MouseButton1Click:Connect(function()
-        idiomaElegido = idioma.codigo
-        txt = traducciones[idiomaElegido]
-        pantallaIdioma:Destroy()
-        CargarMenuPrincipal()
-    end)
-end
-
--- ------------------------------
--- FUNCIÓN PARA CARGAR TU MENÚ ORIGINAL
--- ------------------------------
-function CargarMenuPrincipal()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:WaitForChild("HumanoidRootPart")
-    local humanoid = character:WaitForChild("Humanoid")
-    local minimizado = false
-
-    player.CharacterAdded:Connect(function(new)
-        character = new
-        root = new:WaitForChild("HumanoidRootPart")
-        humanoid = new:WaitForChild("Humanoid")
-    end)
-
-    local toggles = {speed=false, fly=false, noclip=false, god=false, esp=false, silent=false, farm=false, jump=false}
-    local walkSpeedValue = 120
-    local autoFarmDelay = 6
-
-    local locations = {
-        ["Tienda de Armas"] = Vector3.new(3807.15, 4.87, 219.97),
-        ["Burger King"] = Vector3.new(3649.73, 4.70, 528.54),
-        ["Motel"] = Vector3.new(3326.04, 4.28, 52.71),
-        ["Joyería"] = Vector3.new(4065.32, 4.29, -339.37),
-        ["Banco"] = Vector3.new(4148.41, 4.28, -52.02),
-        ["Concesionario"] = Vector3.new(4536.16, 5.06, 226.48),
-        ["Basquetball"] = Vector3.new(4112.87, 4.39, 312.74),
-        ["Gym"] = Vector3.new(3557.72, 4.29, -412.91),
-        ["Police Station"] = Vector3.new(4004.16, 11.91, -751.80),
-        ["Farmacia"] = Vector3.new(4318.52, 5.17, -523.02),
-        ["Haircuts"] = Vector3.new(4251.77, 8.20, -371.79)
+    KeySystem = true, -- Sistema de Key Activo
+    KeySettings = {
+        Title = "🔑 INSERTA LA KEY",
+        Subtitle = "Sistema de Clave Obligatorio",
+        Note = "La clave es: EDER23021 (Únete al Discord/WhatsApp si necesitas soporte)",
+        FileName = "EderKeySystem",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"EDER23021"}
     }
+})
 
-    local function TP(pos)
-        if root then root.CFrame = CFrame.new(pos + Vector3.new(0,8,0)) end
-    end
+-- ==================== TABS ====================
+local PlayerTab = Window:CreateTab("🏃‍♂️ Movimiento", 4483362458)
+local CombatTab = Window:CreateTab("🎯 Combate / ESP", 4483362458)
+local MiscTab = Window:CreateTab("⚙️ Utilidades", 4483362458)
+local ConfigTab = Window:CreateTab("💾 Config", 4483362458)
+local CreditsTab = Window:CreateTab("📱 Redes y Créditos", 4483362458)
 
-    -- GUI
-    local sg = Instance.new("ScreenGui")
-    sg.ResetOnSpawn = false
-    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    sg.Parent = playerGui
+-- Variables de estado
+local humanoid, root = nil, nil
+local normalGravity = Workspace.Gravity
+local velocidadNormal = 16
 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 430, 0, 620)
-    frame.Position = UDim2.new(0.5, -215, 0.5, -310)
-    frame.BackgroundColor3 = Color3.fromRGB(22,22,28)
-    frame.Active = true
-    frame.Parent = sg
+local function updateChar()
+    local char = player.Character or player.CharacterAdded:Wait()
+    humanoid = char:WaitForChild("Humanoid")
+    root = char:WaitForChild("HumanoidRootPart")
+end
+updateChar()
+player.CharacterAdded:Connect(updateChar)
 
-    local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1,0,0,50)
-    titleBar.BackgroundColor3 = Color3.fromRGB(180,0,40)
-    titleBar.Active = true
-    titleBar.ZIndex = 10
-    titleBar.Parent = frame
+-- ==================== TAB: MOVIMIENTO ====================
+local speedConn, jumpConn, infConn, godConn, respawnGodConn, gravityConn, noclipConn
 
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1,0,1,0)
-    title.BackgroundTransparency = 1
-    title.Text = txt.titulo
-    title.TextColor3 = Color3.new(1,1,1)
-    title.TextScaled = true
-    title.ZIndex = 9
-    title.Parent = titleBar
+local speedVal = 120
+PlayerTab:CreateInput({
+    Name = "Velocidad Personalizada",
+    CurrentValue = "120",
+    PlaceholderText = "Escribe el speed...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "VelocidadInput",
+    Callback = function(Value)
+        speedVal = tonumber(Value) or 120
+    end,
+})
 
-    -- ✅ ARRASTRE ARREGLADO 100%
-    local dragging = false
-    local offset = Vector2.new()
-
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            offset = UserInputService:GetMouseLocation() - frame.AbsolutePosition
+PlayerTab:CreateToggle({
+    Name = "Activar Speed",
+    CurrentValue = false,
+    Flag = "SpeedToggle",
+    Callback = function(Value)
+        if Value then
+            speedConn = RunService.Heartbeat:Connect(function()
+                if humanoid then humanoid.WalkSpeed = speedVal end
+            end)
+        else
+            if speedConn then speedConn:Disconnect() speedConn = nil end
+            if humanoid then humanoid.WalkSpeed = velocidadNormal end
         end
-    end)
+    end,
+})
 
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local nuevaPos = UserInputService:GetMouseLocation() - offset
-            frame.Position = UDim2.new(0, nuevaPos.X, 0, nuevaPos.Y)
+local jumpVal = 200
+PlayerTab:CreateInput({
+    Name = "JumpPower Personalizado",
+    CurrentValue = "200",
+    PlaceholderText = "Escribe el salto...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "JumpInput",
+    Callback = function(Value)
+        jumpVal = tonumber(Value) or 200
+    end,
+})
+
+PlayerTab:CreateToggle({
+    Name = "Activar JumpPower",
+    CurrentValue = false,
+    Flag = "JumpToggle",
+    Callback = function(Value)
+        if Value then
+            if humanoid then humanoid.JumpPower = jumpVal humanoid.JumpHeight = jumpVal end
+            jumpConn = RunService.Heartbeat:Connect(function()
+                if humanoid then humanoid.JumpPower = jumpVal end
+            end)
+        else
+            if jumpConn then jumpConn:Disconnect() jumpConn = nil end
+            if humanoid then humanoid.JumpPower = 50 humanoid.JumpHeight = 7.2 end
         end
-    end)
+    end,
+})
 
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
+PlayerTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "InfJumpToggle",
+    Callback = function(Value)
+        if Value then
+            infConn = UserInputService.JumpRequest:Connect(function()
+                if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end)
+        else
+            if infConn then infConn:Disconnect() infConn = nil end
         end
-    end)
+    end,
+})
 
-    -- Scroll (TU VERSIÓN ORIGINAL)
-    local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1,-10,1,-55)
-    scroll.Position = UDim2.new(0,5,0,55)
-    scroll.BackgroundTransparency = 1
-    scroll.ScrollBarThickness = 8
-    scroll.Parent = frame
+PlayerTab:CreateToggle({
+    Name = "Low Gravity",
+    CurrentValue = false,
+    Flag = "LowGravityToggle",
+    Callback = function(Value)
+        if Value then
+            gravityConn = RunService.Heartbeat:Connect(function()
+                Workspace.Gravity = 25
+            end)
+        else
+            if gravityConn then gravityConn:Disconnect() gravityConn = nil end
+            Workspace.Gravity = normalGravity
+        end
+    end,
+})
 
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0,8)
-    layout.Parent = scroll
-
-    local function AddButton(text, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1,-10,0,50)
-        btn.BackgroundColor3 = Color3.fromRGB(40,40,50)
-        btn.Text = text
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.TextScaled = true
-        btn.Parent = scroll
-        if callback then btn.MouseButton1Click:Connect(callback) end
-        return btn
-    end
-
-    -- Botones principales TRADUCIDOS
-    AddButton(txt.velocidad.."OFF", function(b) toggles.speed = not toggles.speed b.Text = txt.velocidad..(toggles.speed and "ON" or "OFF") end)
-    AddButton(txt.volar.."OFF", function(b) toggles.fly = not toggles.fly b.Text = txt.volar..(toggles.fly and "ON" or "OFF") end)
-    AddButton(txt.noclip.."OFF", function(b) toggles.noclip = not toggles.noclip b.Text = txt.noclip..(toggles.noclip and "ON" or "OFF") end)
-    AddButton(txt.dios.."OFF", function(b) toggles.god = not toggles.god b.Text = txt.dios..(toggles.god and "ON" or "OFF") end)
-    AddButton(txt.granja.."OFF", function(b) toggles.farm = not toggles.farm b.Text = txt.granja..(toggles.farm and "ON" or "OFF") end)
-
-    -- TP Menu Colapsable
-    local tpOpen = false
-    local tpButtons = {}
-
-    local tpMainBtn = AddButton(txt.tpLoc.."▼", function()
-        tpOpen = not tpOpen
-        for _, btn in pairs(tpButtons) do btn.Visible = tpOpen end
-        tpMainBtn.Text = txt.tpLoc..(tpOpen and "▲" or "▼")
-    end)
-
-    for name, pos in pairs(locations) do
-        local btn = AddButton("   → "..name, function() TP(pos) end)
-        btn.Visible = false
-        table.insert(tpButtons, btn)
-    end
-
-    -- Minimizar agregado
-    AddButton(txt.minimizar, function(b)
-        minimizado = not minimizado
-        b.Text = minimizado and txt.restaurar or txt.minimizar
-        frame.Size = minimizado and UDim2.new(0,430,0,50) or UDim2.new(0,430,0,620)
-        scroll.Visible = not minimizado
-    end)
-
-    AddButton(txt.cerrar, function() sg:Destroy() end)
-
-    -- Loops ORIGINALES
-    RunService.RenderStepped:Connect(function()
-        if toggles.speed and humanoid then humanoid.WalkSpeed = walkSpeedValue end
-        if toggles.noclip and character then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
+PlayerTab:CreateToggle({
+    Name = "No Clip",
+    CurrentValue = false,
+    Flag = "NoClipToggle",
+    Callback = function(Value)
+        if Value then
+            noclipConn = RunService.Stepped:Connect(function()
+                if root and root.Parent then
+                    for _, p in ipairs(root.Parent:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide = false end
+                    end
+                end
+            end)
+        else
+            if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+            if root and root.Parent then
+                for _, p in ipairs(root.Parent:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = true end
+                end
             end
         end
-    end)
+    end,
+})
 
-    print(txt.cargado)
-end
+-- ==================== TAB: COMBATE / ESP ====================
+PlayerTab:CreateToggle({
+    Name = "God Mode (Ultra)",
+    CurrentValue = false,
+    Flag = "GodModeToggle",
+    Callback = function(Value)
+        if Value then
+            godConn = RunService.Heartbeat:Connect(function()
+                if humanoid then
+                    humanoid.MaxHealth = math.huge
+                    humanoid.Health = math.huge
+                    humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                end
+            end)
+            respawnGodConn = player.CharacterAdded:Connect(function(newChar)
+                task.wait(0.3)
+                local h = newChar:WaitForChild("Humanoid")
+                h.MaxHealth = math.huge h.Health = math.huge
+                h:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+            end)
+        else
+            if godConn then godConn:Disconnect() godConn = nil end
+            if respawnGodConn then respawnGodConn:Disconnect() respawnGodConn = nil end
+            if humanoid then
+                humanoid.MaxHealth = 100
+                humanoid.Health = 100
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+            end
+        end
+    end,
+})
+
+-- ESP Jugadores
+local espActivo = false
+local etiquetasESP = {}
+CombatTab:CreateToggle({
+    Name = "ESP Jugadores",
+    CurrentValue = false,
+    Flag = "ESPPlayerToggle",
+    Callback = function(Value)
+        espActivo = Value
+        if espActivo then
+            local espConn
+            espConn = RunService.RenderStepped:Connect(function()
+                if not espActivo then espConn:Disconnect() return end
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                        local parte = p.Character.HumanoidRootPart
+                        local dist = root and (root.Position - parte.Position).Magnitude or 0
+                        local _, visible = Camera:WorldToViewportPoint(parte.Position)
+                        if visible then
+                            if not etiquetasESP[p] then
+                                local gui = Instance.new("BillboardGui")
+                                gui.Name = "ESP_"..p.Name
+                                gui.Adornee = parte
+                                gui.Size = UDim2.new(0, 160, 0, 60)
+                                gui.AlwaysOnTop = true
+                                gui.Parent = game:GetService("CoreGui")
+                                local txt = Instance.new("TextLabel")
+                                txt.Size = UDim2.new(1,0,1,0)
+                                txt.BackgroundTransparency = 1
+                                txt.TextColor3 = Color3.fromRGB(255,80,80)
+                                txt.TextSize = 14
+                                txt.Font = Enum.Font.GothamBold
+                                txt.TextWrapped = true
+                                txt.Parent = gui
+                                etiquetasESP[p] = txt
+                            end
+                            etiquetasESP[p].Text = string.format("👤 %s\n❤️ %d | 📏 %.0fm", p.Name, math.floor(p.Character.Humanoid.Health), dist)
+                        else
+                            if etiquetasESP[p] then etiquetasESP[p].Parent:Destroy() etiquetasESP[p] = nil end
+                        end
+                    else
+                        if etiquetasESP[p] then etiquetasESP[p].Parent:Destroy() etiquetasESP[p] = nil end
+                    end
+                end
+            end)
+        else
+            for _, etq in pairs(etiquetasESP) do if etq then etq.Parent:Destroy() end end
+            etiquetasESP = {}
+        end
+    end,
+})
+
+-- ESP Inventario
+local espInvActivo = false
+CombatTab:CreateToggle({
+    Name = "ESP Inventario",
+    CurrentValue = false,
+    Flag = "ESPInvToggle",
+    Callback = function(Value)
+        espInvActivo = Value
+        if espInvActivo then
+            local invConn
+            invConn = RunService.RenderStepped:Connect(function()
+                if not espInvActivo then invConn:Disconnect() return end
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local parte = p.Character.HumanoidRootPart
+                        local hum = p.Character:FindFirstChild("Humanoid")
+                        if not hum or hum.Health <= 0 then
+                            if etiquetasESP["Inv_"..p.UserId] then etiquetasESP["Inv_"..p.UserId].Parent:Destroy() etiquetasESP["Inv_"..p.UserId] = nil end
+                            continue
+                        end
+                        local _, visible = Camera:WorldToViewportPoint(parte.Position)
+                        if visible then
+                            local inventario = p.Backpack
+                            local lista = {}
+                            if inventario then
+                                for _, obj in ipairs(inventario:GetChildren()) do
+                                    if obj:IsA("Tool") or obj:IsA("HopperBin") then
+                                        table.insert(lista, obj.Name)
+                                    end
+                                end
+                            end
+                            if hum and hum:FindFirstChild("Tool") then
+                                table.insert(lista, "✅ "..hum.Tool.Name.." (Equipado)")
+                            end
+                            local textoInv = #lista > 0 and table.concat(lista, "\n• ") or "Sin objetos"
+                            if not etiquetasESP["Inv_"..p.UserId] then
+                                local gui = Instance.new("BillboardGui")
+                                gui.Name = "ESPInv_"..p.Name
+                                gui.Adornee = parte
+                                gui.Size = UDim2.new(0, 220, 0, 100)
+                                gui.AlwaysOnTop = true
+                                gui.Parent = game:GetService("CoreGui")
+                                local txt = Instance.new("TextLabel")
+                                txt.Size = UDim2.new(1,0,1,0)
+                                txt.BackgroundTransparency = 1
+                                txt.TextColor3 = Color3.fromRGB(120, 255, 120)
+                                txt.TextSize = 13
+                                txt.Font = Enum.Font.GothamBold
+                                txt.TextWrapped = true
+                                txt.Parent = gui
+                                etiquetasESP["Inv_"..p.UserId] = txt
+                            end
+                            etiquetasESP["Inv_"..p.UserId].Text = string.format("🎒 %s:\n• %s", p.Name, textoInv)
+                        else
+                            if etiquetasESP["Inv_"..p.UserId] then etiquetasESP["Inv_"..p.UserId].Parent:Destroy() etiquetasESP["Inv_"..p.UserId] = nil end
+                        end
+                    else
+                        if etiquetasESP["Inv_"..p.UserId] then etiquetasESP["Inv_"..p.UserId].Parent:Destroy() etiquetasESP["Inv_"..p.UserId] = nil end
+                    end
+                end
+            end)
+        else
+            for k, etq in pairs(etiquetasESP) do
+                if k:sub(1,4) == "Inv_" then etq.Parent:Destroy() etiquetasESP[k] = nil end
+            end
+        end
+    end,
+})
+
+-- Aimbot con FOV
+local aimbotActivo = false
+local fovRadius = 120
+local apuntarCabeza = true
+
+CombatTab:CreateToggle({
+    Name = "Aimbot",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        aimbotActivo = Value
+    end,
+})
+
+CombatTab:CreateSlider({
+    Name = "Radio FOV",
+    Range = {30, 400},
+    Increment = 5,
+    CurrentValue = 120,
+    Suffix = "px",
+    Flag = "FOV_Slider",
+    Callback = function(Value)
+        fovRadius = Value
+    end,
+})
+
+CombatTab:CreateDropdown({
+    Name = "Parte del Cuerpo",
+    Options = {"Cabeza", "Pecho"},
+    CurrentOption = "Cabeza",
+    Flag = "AimbotPartDropdown",
+    Callback = function(Option)
+        apuntarCabeza = (Option == "Cabeza")
+    end,
+})
+
+RunService.RenderStepped:Connect(function()
+    if not aimbotActivo or not root then return end
+    local mejorObjetivo = nil
+    local mejorDistancia = math.huge
+
+    for _, objetivo in ipairs(Players:GetPlayers()) do
+        if objetivo ~= player and objetivo.Character and objetivo.Character:FindFirstChild("HumanoidRootPart") and objetivo.Character:FindFirstChild("Humanoid") and objetivo.Character.Humanoid.Health > 0 then
+            local parteObjetivo = apuntarCabeza and objetivo.Character:FindFirstChild("Head") or objetivo.Character.HumanoidRootPart
+            if not parteObjetivo then continue end
+
+            local vectorPantalla, visible = Camera:WorldToViewportPoint(parteObjetivo.Position)
+            if not visible then continue end
+
+            local distanciaCentro = (Vector2.new(vectorPantalla.X, vectorPantalla.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+            if distanciaCentro < fovRadius and distanciaCentro < mejorDistancia then
+                mejorDistancia = distanciaCentro
+                mejorObjetivo = parteObjetivo
+            end
+        end
+    end
+
+    if mejorObjetivo then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, mejorObjetivo.Position)
+    end
+end)
+
+-- ==================== TAB: UTILIDADES (TELEPORT) ====================
+local savedCFrame = nil
+
+MiscTab:CreateButton({
+    Name = "Guardar Posición Actual",
+    Callback = function()
+        if root then
+            savedCFrame = root.CFrame
+            Rayfield:Notify({Title = "Teleport", Content = "¡Posición guardada con éxito!", Duration = 2})
+        end
+    end,
+})
+
+MiscTab:CreateButton({
+    Name = "Teleport Instantáneo",
+    Callback = function()
+        if savedCFrame and root then
+            root.CFrame = savedCFrame
+        else
+            Rayfield:Notify({Title = "Error", Content = "Primero guarda una posición.", Duration = 2})
+        end
+    end,
+})
+
+MiscTab:CreateButton({
+    Name = "Teleport Suave (Tween)",
+    Callback = function()
+        if savedCFrame and root then
+            TweenService:Create(root, TweenInfo.new(1.6, Enum.EasingStyle.Quint), {CFrame = savedCFrame}):Play()
+        else
+            Rayfield:Notify({Title = "Error", Content = "Primero guarda una posición.", Duration = 2})
+        end
+    end,
+})
+
+-- ==================== TAB: CONFIG ====================
+ConfigTab:CreateSection("Gestión de Configuración")
+
+ConfigTab:CreateButton({
+    Name = "Guardar Configuración Manualmente",
+    Callback = function()
+        Rayfield:SaveConfiguration()
+        Rayfield:Notify({Title = "Config", Content = "¡Configuración guardada correctamente!", Duration = 2})
+    end,
+})
+
+ConfigTab:CreateButton({
+    Name = "Borrar / Reiniciar Configuración",
+    Callback = function()
+        pcall(function()
+            delfile("EderHubConfigs/ConfigPanelEDER.json")
+        end)
+        Rayfield:Notify({Title = "Config", Content = "Configuración restablecida. Reinicia el script si es necesario.", Duration = 3})
+    end,
+})
+
+-- ==================== TAB: REDES Y CRÉDITOS ====================
+CreditsTab:CreateSection("Creadores del Panel")
+
+CreditsTab:CreateButton({
+    Name = "Copiar TikTok: TOCINACIO23021",
+    Callback = function()
+        setclipboard("tiktok.com/@tocinacio23021_oficial")
+        Rayfield:Notify({Title = "Portapapeles", Content = "Enlace de Tocinacio copiado.", Duration = 2})
+    end,
+})
+
+CreditsTab:CreateButton({
+    Name = "Copiar TikTok: EDER2302",
+    Callback = function()
+        setclipboard("tiktok.com/@eder.sanchez77")
+        Rayfield:Notify({Title = "Portapapeles", Content = "Enlace de Eder copiado.", Duration = 2})
+    end,
+})
+
+Rayfield:LoadConfiguration()
