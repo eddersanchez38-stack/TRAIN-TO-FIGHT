@@ -1,17 +1,11 @@
 -- ==============================================
--- 🥊 EDER2302 & TOCINACIO23021 | CORREGIDO + ENLACES
--- ✅ Delta Compat | 1 sola instancia | Menú ABIERTO al inicio
--- ✅ Minimizar/Desminimizar/Cerrar FUNCIONAL
--- ✅ Carga primero → Menú después
--- ✅ Sección de Enlaces Oficiales agregada
+-- 💎 EDER2302 & TOCINACIO23021 | RAYFIELD HUB
 -- ==============================================
 
--- ✅ EVITAR DUPLICADOS
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local Players = game:GetService("Players")
 local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("EderHub") then PlayerGui.EderHub:Destroy() end
-if PlayerGui:FindFirstChild("CargaUI") then PlayerGui.CargaUI:Destroy() end
-
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UIS = game:GetService("UserInputService")
@@ -19,8 +13,10 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 -- ==============================================
--- 📺 PANTALLA DE CARGA — IGUAL A LA IMAGEN
+-- 📺 PANTALLA DE CARGA INICIAL
 -- ==============================================
+if PlayerGui:FindFirstChild("CargaUI") then PlayerGui.CargaUI:Destroy() end
+
 local CargaUI = Instance.new("ScreenGui")
 CargaUI.Name = "CargaUI"
 CargaUI.ResetOnSpawn = false
@@ -28,7 +24,6 @@ CargaUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 CargaUI.DisplayOrder = 100
 CargaUI.Parent = PlayerGui
 
--- Fondo oscuro semitransparente
 local Fondo = Instance.new("Frame")
 Fondo.Size = UDim2.new(0, 380, 0, 110)
 Fondo.Position = UDim2.new(0.5, -190, 0.5, -55)
@@ -38,7 +33,6 @@ Fondo.BorderSizePixel = 0
 Fondo.Parent = CargaUI
 Instance.new("UICorner", Fondo).CornerRadius = UDim.new(0, 6)
 
--- Barra de fondo del progreso
 local BarraFondo = Instance.new("Frame")
 BarraFondo.Size = UDim2.new(0.85, 0, 0, 6)
 BarraFondo.Position = UDim2.new(0.075, 0, 0.22, 0)
@@ -46,14 +40,12 @@ BarraFondo.BackgroundColor3 = Color3.fromRGB(70, 65, 58)
 BarraFondo.Parent = Fondo
 Instance.new("UICorner", BarraFondo).CornerRadius = UDim.new(0, 3)
 
--- Barra de progreso amarilla
 local BarraProg = Instance.new("Frame")
 BarraProg.Size = UDim2.new(0.08, 0, 1, 0)
 BarraProg.BackgroundColor3 = Color3.fromRGB(255, 200, 60)
 BarraProg.Parent = BarraFondo
 Instance.new("UICorner", BarraProg).CornerRadius = UDim.new(0, 3)
 
--- Porcentaje
 local TextoPorc = Instance.new("TextLabel")
 TextoPorc.Size = UDim2.new(1, 0, 0, 28)
 TextoPorc.Position = UDim2.new(0, 0, 0.02, 0)
@@ -65,7 +57,6 @@ TextoPorc.TextSize = 22
 TextoPorc.TextXAlignment = Enum.TextXAlignment.Center
 TextoPorc.Parent = Fondo
 
--- NOMBRE DEL HUB
 local TextoHub = Instance.new("TextLabel")
 TextoHub.Size = UDim2.new(1, 0, 0, 32)
 TextoHub.Position = UDim2.new(0, 0, 0.32, 0)
@@ -77,7 +68,6 @@ TextoHub.TextSize = 24
 TextoHub.TextXAlignment = Enum.TextXAlignment.Center
 TextoHub.Parent = Fondo
 
--- Mensaje inferior + fuego
 local TextoSub = Instance.new("TextLabel")
 TextoSub.Size = UDim2.new(1, 0, 0, 24)
 TextoSub.Position = UDim2.new(0, 0, 0.68, 0)
@@ -89,294 +79,11 @@ TextoSub.TextSize = 14
 TextoSub.TextXAlignment = Enum.TextXAlignment.Center
 TextoSub.Parent = Fondo
 
--- ⏳ ESPERAR → MOSTRAR MENÚ CORRECTAMENTE
+-- Variables globales de control
 local Config, AutoTrain, Connections, char, hum, root, Plataforma, FlyConn, UltimaAltura, ListaJugadores, IndiceActual
+local walkConn = nil
 
-local function MostrarMenuCompleto()
-    -- 🎨 GUI PRINCIPAL
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "EderHub"
-    gui.ResetOnSpawn = false
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    gui.DisplayOrder = 50
-    gui.Parent = PlayerGui
-
-    -- ✅ TAMAÑO INICIAL ABIERTO — NO MINIMIZADO
-    local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 220, 0, 440)
-    main.Position = UDim2.new(0, 15, 0.25, 0)
-    main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-    main.Active = true
-    main.Draggable = true
-    main.Parent = gui
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
-
-    -- 📌 BARRA SUPERIOR
-    local top = Instance.new("Frame")
-    top.Size = UDim2.new(1, 0, 0, 45)
-    top.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
-    top.Active = true
-    top.Parent = main
-    Instance.new("UICorner", top).CornerRadius = UDim.new(0, 8)
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -70, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "EDER2302 & TOCINACIO23021"
-    title.TextColor3 = Color3.fromRGB(0, 210, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 12
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = top
-
-    local minBtn = Instance.new("TextButton")
-    minBtn.Name = "MinBtn"
-    minBtn.Size = UDim2.new(0, 28, 0, 28)
-    minBtn.Position = UDim2.new(1, -60, 0.5, -14)
-    minBtn.BackgroundTransparency = 1
-    minBtn.Text = "-"
-    minBtn.TextColor3 = Color3.new(1,1,1)
-    minBtn.Font = Enum.Font.GothamBold
-    minBtn.TextSize = 18
-    minBtn.Parent = top
-
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 28, 0, 28)
-    closeBtn.Position = UDim2.new(1, -30, 0.5, -14)
-    closeBtn.BackgroundTransparency = 1
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 70, 70)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 16
-    closeBtn.Parent = top
-
-    -- 📋 CONTENIDO
-    local content = Instance.new("Frame")
-    content.Name = "Content"
-    content.Size = UDim2.new(1, 0, 1, -45)
-    content.Position = UDim2.new(0, 0, 0, 45)
-    content.BackgroundTransparency = 1
-    content.Visible = true
-    content.Parent = main
-
-    local ListaLayout = Instance.new("UIListLayout")
-    ListaLayout.Padding = UDim.new(0, 7)
-    ListaLayout.Parent = content
-
-    -- 🧩 CREAR BOTÓN
-    local function CrearBoton(texto, estadoInicial)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.92, 0, 0, 32)
-        btn.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-        btn.Text = texto .. ": " .. (estadoInicial and "ON" or "OFF")
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.Font = Enum.Font.Gotham; btn.TextSize = 12
-        btn.Parent = content
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-        return btn
-    end
-
-    -- 🎚️ BARRA DE VELOCIDAD
-    local function CrearBarraVelocidad()
-        local Contenedor = Instance.new("Frame")
-        Contenedor.Size = UDim2.new(0.92, 0, 0, 45)
-        Contenedor.BackgroundTransparency = 1
-        Contenedor.Parent = content
-
-        local Etiqueta = Instance.new("TextLabel")
-        Etiqueta.Size = UDim2.new(1, 0, 0, 18)
-        Etiqueta.BackgroundTransparency = 1
-        Etiqueta.Text = "Velocidad Vuelo: " .. Config.FlySpeed
-        Etiqueta.TextColor3 = Color3.new(1,1,1)
-        Etiqueta.Font = Enum.Font.Gotham; Etiqueta.TextSize = 11
-        Etiqueta.TextXAlignment = Enum.TextXAlignment.Left
-        Etiqueta.Parent = Contenedor
-
-        local FondoBarra = Instance.new("Frame")
-        FondoBarra.Size = UDim2.new(1, 0, 0, 12)
-        FondoBarra.Position = UDim2.new(0, 0, 0, 22)
-        FondoBarra.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
-        FondoBarra.Parent = Contenedor
-        Instance.new("UICorner", FondoBarra).CornerRadius = UDim.new(0, 6)
-
-        local Llenado = Instance.new("Frame")
-        Llenado.Size = UDim2.new((Config.FlySpeed/Config.MaxFlySpeed), 0, 1, 0)
-        Llenado.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
-        Llenado.Parent = FondoBarra
-        Instance.new("UICorner", Llenado).CornerRadius = UDim.new(0, 6)
-
-        local Arrastrar = false
-        local function ActualizarVelocidad(x)
-            local escala = math.clamp((x - FondoBarra.AbsolutePosition.X) / FondoBarra.AbsoluteSize.X, 0.15, 1)
-            Config.FlySpeed = math.floor(escala * Config.MaxFlySpeed)
-            Llenado.Size = UDim2.new(escala, 0, 1, 0)
-            Etiqueta.Text = "Velocidad Vuelo: " .. Config.FlySpeed
-        end
-
-        FondoBarra.InputBegan:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then Arrastrar = true; ActualizarVelocidad(i.Position.X) end
-        end)
-        UIS.InputChanged:Connect(function(i)
-            if Arrastrar and i.UserInputType == Enum.UserInputType.MouseMovement then ActualizarVelocidad(i.Position.X) end
-        end)
-        FondoBarra.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then Arrastrar = false end
-        end)
-    end
-
-    -- 🎛️ BOTONES
-    local btnFastTrain = CrearBoton("⚡ Fast Train", false)
-    btnFastTrain.MouseButton1Click:Connect(function()
-        Toggle(not AutoTrain)
-        local encendido = AutoTrain
-        btnFastTrain.Text = "⚡ Fast Train: " .. (encendido and "ON" or "OFF")
-        btnFastTrain.BackgroundColor3 = encendido and Color3.fromRGB(0, 145, 75) or Color3.fromRGB(38, 38, 48)
-    end)
-
-    local btnWalk = CrearBoton("🏃 WalkSpeed x6", false)
-    btnWalk.MouseButton1Click:Connect(function()
-        Config.WalkSpeed = not Config.WalkSpeed
-        btnWalk.Text = "🏃 WalkSpeed x6: " .. (Config.WalkSpeed and "ON" or "OFF")
-        btnWalk.BackgroundColor3 = Config.WalkSpeed and Color3.fromRGB(0, 145, 75) or Color3.fromRGB(38, 38, 48)
-    end)
-
-    local btnTpJug = CrearBoton("👥 TP Jugadores", false)
-    btnTpJug.MouseButton1Click:Connect(function()
-        Config.AutoTpPlayers = not Config.AutoTpPlayers
-        btnTpJug.Text = "👥 TP Jugadores: " .. (Config.AutoTpPlayers and "ON" or "OFF")
-        btnTpJug.BackgroundColor3 = Config.AutoTpPlayers and Color3.fromRGB(0, 145, 75) or Color3.fromRGB(38, 38, 48)
-    end)
-
-    local btnFly = CrearBoton("🪂 Vuelo", false)
-    btnFly.MouseButton1Click:Connect(function()
-        Config.Fly = not Config.Fly
-        btnFly.Text = "🪂 Vuelo: " .. (Config.Fly and "ON" or "OFF")
-        btnFly.BackgroundColor3 = Config.Fly and Color3.fromRGB(0, 145, 75) or Color3.fromRGB(38, 38, 48)
-        ToggleFly(Config.Fly)
-    end)
-
-    CrearBarraVelocidad()
-
-    local btnClickTp = CrearBoton("🌀 Click TP", false)
-    btnClickTp.MouseButton1Click:Connect(function()
-        Config.ClickTp = not Config.ClickTp
-        btnClickTp.Text = "🌀 Click TP: " .. (Config.ClickTp and "ON" or "OFF")
-        btnClickTp.BackgroundColor3 = Config.ClickTp and Color3.fromRGB(0, 145, 75) or Color3.fromRGB(38, 38, 48)
-    end)
-
-    -- ==============================================
-    -- 🔗 SECCIÓN DE ENLACES OFICIALES
-    -- ==============================================
-    local Separador = Instance.new("Frame")
-    Separador.Size = UDim2.new(0.92, 0, 0, 2)
-    Separador.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    Separador.Parent = content
-
-    local EtiquetaEnlaces = Instance.new("TextLabel")
-    EtiquetaEnlaces.Size = UDim2.new(0.92, 0, 0, 20)
-    EtiquetaEnlaces.BackgroundTransparency = 1
-    EtiquetaEnlaces.Text = "🔗 ENLACES OFICIALES"
-    EtiquetaEnlaces.TextColor3 = Color3.fromRGB(120, 230, 255)
-    EtiquetaEnlaces.Font = Enum.Font.GothamBold
-    EtiquetaEnlaces.TextSize = 11
-    EtiquetaEnlaces.Parent = content
-
-    local btnLinkClave = Instance.new("TextButton")
-    btnLinkClave.Size = UDim2.new(0.92, 0, 0, 30)
-    btnLinkClave.BackgroundColor3 = Color3.fromRGB(30, 120, 200)
-    btnLinkClave.Text = "🔑 Grupo Clave (Copiar)"
-    btnLinkClave.TextColor3 = Color3.new(1,1,1)
-    btnLinkClave.Font = Enum.Font.GothamSemibold
-    btnLinkClave.TextSize = 11
-    btnLinkClave.Parent = content
-    Instance.new("UICorner", btnLinkClave).CornerRadius = UDim.new(0,6)
-    btnLinkClave.MouseButton1Click:Connect(function()
-        setclipboard("https://chat.whatsapp.com/Cn5IwKTTcsf49PushVJ3LX")
-        btnLinkClave.Text = "✅ Copiado!"
-        task.wait(1.5)
-        btnLinkClave.Text = "🔑 Grupo Clave (Copiar)"
-    end)
-
-    -- ✅ SOLO AGREGADO ESTE BOTÓN NUEVO
-    local btnLinkPagina = Instance.new("TextButton")
-    btnLinkPagina.Size = UDim2.new(0.92, 0, 0, 30)
-    btnLinkPagina.BackgroundColor3 = Color3.fromRGB(30, 120, 200)
-    btnLinkPagina.Text = "🌐 PÁGINA OFICIAL DE SCRIPTS"
-    btnLinkPagina.TextColor3 = Color3.new(1,1,1)
-    btnLinkPagina.Font = Enum.Font.GothamSemibold
-    btnLinkPagina.TextSize = 11
-    btnLinkPagina.Parent = content
-    Instance.new("UICorner", btnLinkPagina).CornerRadius = UDim.new(0,6)
-    btnLinkPagina.MouseButton1Click:Connect(function()
-        setclipboard("https://eder2302-tocinacio23021.netlify.app")
-        btnLinkPagina.Text = "✅ Copiado!"
-        task.wait(1.5)
-        btnLinkPagina.Text = "🌐 PÁGINA OFICIAL DE SCRIPTS"
-    end)
-
-    local btnLinkToci = Instance.new("TextButton")
-    btnLinkToci.Size = UDim2.new(0.92, 0, 0, 30)
-    btnLinkToci.BackgroundColor3 = Color3.fromRGB(30, 120, 200)
-    btnLinkToci.Text = "📱 TOCINACIO23021 (Copiar)"
-    btnLinkToci.TextColor3 = Color3.new(1,1,1)
-    btnLinkToci.Font = Enum.Font.GothamSemibold
-    btnLinkToci.TextSize = 11
-    btnLinkToci.Parent = content
-    Instance.new("UICorner", btnLinkToci).CornerRadius = UDim.new(0,6)
-    btnLinkToci.MouseButton1Click:Connect(function()
-        setclipboard("tiktok.com/@tocinacio23021_oficial")
-        btnLinkToci.Text = "✅ Copiado!"
-        task.wait(1.5)
-        btnLinkToci.Text = "📱 TOCINACIO23021 (Copiar)"
-    end)
-
-    local btnLinkEder = Instance.new("TextButton")
-    btnLinkEder.Size = UDim2.new(0.92, 0, 0, 30)
-    btnLinkEder.BackgroundColor3 = Color3.fromRGB(30, 120, 200)
-    btnLinkEder.Text = "📱 EDER2302 (Copiar)"
-    btnLinkEder.TextColor3 = Color3.new(1,1,1)
-    btnLinkEder.Font = Enum.Font.GothamSemibold
-    btnLinkEder.TextSize = 11
-    btnLinkEder.Parent = content
-    Instance.new("UICorner", btnLinkEder).CornerRadius = UDim.new(0,6)
-    btnLinkEder.MouseButton1Click:Connect(function()
-        setclipboard("tiktok.com/@eder.sanchez77")
-        btnLinkEder.Text = "✅ Copiado!"
-        task.wait(1.5)
-        btnLinkEder.Text = "📱 EDER2302 (Copiar)"
-    end)
-    -- ==============================================
-
-    -- 📐 MINIMIZAR/DESMINIMIZAR
-    local ABIERTO_ALTO = 440
-    local MINIMIZADO_ALTO = 45
-    local Abierto = true
-
-    local function CambiarMinimizar()
-        Abierto = not Abierto
-        if Abierto then
-            main.Size = UDim2.new(0, 220, 0, ABIERTO_ALTO)
-            content.Visible = true
-            minBtn.Text = "-"
-        else
-            content.Visible = false
-            main.Size = UDim2.new(0, 220, 0, MINIMIZADO_ALTO)
-            minBtn.Text = "+"
-        end
-    end
-
-    minBtn.MouseButton1Click:Connect(CambiarMinimizar)
-
-    -- ❌ CERRAR
-    closeBtn.MouseButton1Click:Connect(function()
-        Toggle(false)
-        if Config.Fly then ToggleFly(false) end
-        gui:Destroy()
-    end)
-end
-
--- 📊 ANIMAR CARGA → MOSTRAR MENÚ
+-- 📊 ANIMAR CARGA Y ARRANCAR RAYFIELD
 task.spawn(function()
     for i = 8, 100, 2 do
         task.wait(0.035)
@@ -399,7 +106,7 @@ task.spawn(function()
         AutoTpPlayers = false,
         Fly = false,
         ClickTp = false,
-        SpeedVal = 16,
+        WalkSpeedVal = 96, -- x6 por defecto (16 * 6)
         FlySpeed = 35,
         MaxFlySpeed = 80,
         TpDelay = 2
@@ -521,14 +228,140 @@ task.spawn(function()
         end
     end)
 
-    task.spawn(function()
-        while true do
-            task.wait(0.1)
-            if char and hum then hum.WalkSpeed = Config.WalkSpeed and 96 or 16 end
+    -- 🏃 Control robusto de WalkSpeed (Fuerza la velocidad constantemente mediante Heartbeat)
+    local function ToggleWalkSpeed(estado)
+        Config.WalkSpeed = estado
+        if estado then
+            if walkConn then walkConn:Disconnect() end
+            walkConn = RunService.Heartbeat:Connect(function()
+                pcall(function()
+                    if hum and hum.Parent then
+                        hum.WalkSpeed = Config.WalkSpeedVal
+                    end
+                end)
+            end)
+        else
+            if walkConn then walkConn:Disconnect() walkConn = nil end
+            pcall(function()
+                if hum and hum.Parent then
+                    hum.WalkSpeed = 16
+                end
+            end)
         end
-    end)
+    end
 
-    MostrarMenuCompleto()
+    -- ==============================================
+    -- 🪟 CREACIÓN DE LA VENTANA RAYFIELD
+    -- ==============================================
+    local Window = Rayfield:CreateWindow({
+        Name = "💎 EDER2302 & TOCINACIO23021",
+        LoadingTitle = "EDER2302 Hub",
+        LoadingSubtitle = "Cargando interfaz...",
+        ConfigurationSaving = {
+            Enabled = true,
+            FolderName = "EderHubRayfield",
+            FileName = "ConfigPanel"
+        },
+        Discord = {
+            Enabled = false,
+            Invite = "",
+            RememberJoins = true
+        },
+        KeySystem = false,
+    })
+
+    -- ==================== PESTAÑAS ====================
+    local MainTab = Window:CreateTab("⚡ Funciones", 4483362458)
+    local ConfigTab = Window:CreateTab("⚙️ Config & Enlaces", 4483362458)
+
+    -- ==================== TAB: FUNCIONES ====================
+    MainTab:CreateSection("Automatización y Hacks")
+
+    MainTab:CreateToggle({
+        Name = "⚡ Fast Train",
+        CurrentValue = false,
+        Flag = "FastTrainToggle",
+        Callback = function(Value)
+            Toggle(Value)
+        end,
+    })
+
+    MainTab:CreateToggle({
+        Name = "🏃 WalkSpeed x6",
+        CurrentValue = false,
+        Flag = "WalkSpeedToggle",
+        Callback = function(Value)
+            ToggleWalkSpeed(Value)
+        end,
+    })
+
+    MainTab:CreateToggle({
+        Name = "👥 TP Jugadores",
+        CurrentValue = false,
+        Flag = "TpPlayersToggle",
+        Callback = function(Value)
+            Config.AutoTpPlayers = Value
+        end,
+    })
+
+    MainTab:CreateToggle({
+        Name = "🪂 Vuelo con Plataforma",
+        CurrentValue = false,
+        Flag = "FlyToggle",
+        Callback = function(Value)
+            ToggleFly(Value)
+        end,
+    })
+
+    MainTab:CreateSlider({
+        Name = "Velocidad de Vuelo",
+        Range = {10, 80},
+        Increment = 5,
+        CurrentValue = 35,
+        Suffix = "spd",
+        Flag = "FlySpeedSlider",
+        Callback = function(Value)
+            Config.FlySpeed = Value
+        end,
+    })
+
+    MainTab:CreateToggle({
+        Name = "🌀 Click TP",
+        CurrentValue = false,
+        Flag = "ClickTpToggle",
+        Callback = function(Value)
+            Config.ClickTp = Value
+        end,
+    })
+
+    -- ==================== TAB: CONFIG & ENLACES ====================
+    ConfigTab:CreateSection("Zona de Config y Soporte")
+
+    ConfigTab:CreateButton({
+        Name = "💬 Canal de WhatsApp (Copiar)",
+        Callback = function()
+            setclipboard("https://chat.whatsapp.com/Cn5IwKTTcsf49PushVJ3LX")
+            Rayfield:Notify({Title = "Portapapeles", Content = "¡Canal de WhatsApp copiado!", Duration = 2})
+        end,
+    })
+
+    ConfigTab:CreateButton({
+        Name = "📱 TikTok: TOCINACIO23021 (Copiar)",
+        Callback = function()
+            setclipboard("tiktok.com/@tocinacio23021_oficial")
+            Rayfield:Notify({Title = "Portapapeles", Content = "Enlace de Tocinacio copiado.", Duration = 2})
+        end,
+    })
+
+    ConfigTab:CreateButton({
+        Name = "📱 TikTok: EDER2302 (Copiar)",
+        Callback = function()
+            setclipboard("tiktok.com/@eder.sanchez77")
+            Rayfield:Notify({Title = "Portapapeles", Content = "Enlace de Eder copiado.", Duration = 2})
+        end,
+    })
+
+    Rayfield:LoadConfiguration()
 end)
 
-print("✅ EDER2302 & TOCINACIO23021 | BOTÓN PÁGINA OFICIAL AGREGADO")
+print("✅ EDER2302 & TOCINACIO23021 | Rayfield Hub actualizado")
