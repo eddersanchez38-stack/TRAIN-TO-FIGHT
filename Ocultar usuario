@@ -1,36 +1,97 @@
--- Ocultar nombre de Roblox (local)
+-- -- OCULTAR NOMBRE DE ROBLOX | Panel Rayfield
+-- ADVERTENCIA: Viola los Términos de Servicio de Roblox. Úsalo bajo tu propia responsabilidad.
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
+-- ==================== VENTANA PRINCIPAL ====================
+local Window = Rayfield:CreateWindow({
+    Name = "👁️ Ocultar Nombre Hub",
+    LoadingTitle = "Cargando Panel...",
+    LoadingSubtitle = "Por Privacidad",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "OcultarNombreConfig",
+        FileName = "ConfigOcultar"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "",
+        RememberJoins = true
+    },
+    KeySystem = false, -- Sin sistema de key para que sea directo
+})
+
+-- ==================== TABS ====================
+local MainTab = Window:CreateTab("⚙️ Principal", 4483362458)
+
+-- ==================== LÓGICA DE OCULTAR NOMBRE ====================
+local ocultarNombreActivo = false
+local respawnConn = nil
+
 local function ocultarNombre(char)
-	task.wait(0.5)
-	
-	-- Busca el nombre que aparece encima del personaje
-	local head = char:FindFirstChild("Head")
-	if not head then return end
+    if not ocultarNombreActivo then return end
+    task.wait(0.5)
+    
+    -- Busca el nombre que aparece encima del personaje
+    local head = char:FindFirstChild("Head")
+    if not head then return end
 
-	-- Destruye cualquier BillboardGui de nombre que tenga
-	for _, v in pairs(head:GetChildren()) do
-		if v:IsA("BillboardGui") then
-			v:Destroy()
-		end
-	end
+    -- Destruye cualquier BillboardGui de nombre que tenga
+    for _, v in pairs(head:GetChildren()) do
+        if v:IsA("BillboardGui") then
+            v:Destroy()
+        end
+    end
 
-	-- También intenta ocultar el Humanoid name
-	local humanoid = char:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		humanoid.NameDisplayDistance = 0
-	end
+    -- También intenta ocultar el Humanoid name
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+        humanoid.NameDisplayDistance = 0
+    end
 end
 
--- Aplicar al personaje actual
-if player.Character then
-	ocultarNombre(player.Character)
-end
+-- ==================== COMPONENTES EN RAYFIELD ====================
+MainTab:CreateSection("Opciones de Privacidad")
 
--- Aplicar cada vez que respawneas
-player.CharacterAdded:Connect(ocultarNombre)
+MainTab:CreateToggle({
+    Name = "Ocultar Mi Nombre (Local)",
+    CurrentValue = false,
+    Flag = "OcultarNombreToggle",
+    Callback = function(Value)
+        ocultarNombreActivo = Value
+        
+        if ocultarNombreActivo then
+            -- Aplicar al personaje actual si ya existe
+            if player.Character then
+                ocultarNombre(player.Character)
+            end
+            -- Aplicar cada vez que respawneas
+            respawnConn = player.CharacterAdded:Connect(ocultarNombre)
+            
+            Rayfield:Notify({
+                Title = "Privacidad",
+                Content = "¡Nombre ocultado correctamente!",
+                Duration = 2
+            })
+            print("✅ Nombre ocultado")
+        else
+            -- Desconectar el evento de respawn si se desactiva
+            if respawnConn then
+                respawnConn:Disconnect()
+                respawnConn = nil
+            end
+            
+            Rayfield:Notify({
+                Title = "Privacidad",
+                Content = "Desactivado. Reinicia tu personaje para verlo de nuevo.",
+                Duration = 3
+            })
+        end
+    end,
+})
 
-print("✅ Nombre ocultado")
+Rayfield:LoadConfiguration()
