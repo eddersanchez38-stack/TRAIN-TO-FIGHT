@@ -1,0 +1,36 @@
+-- Ocultar nombre de Roblox (local)
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function ocultarNombre(char)
+	task.wait(0.5)
+	
+	-- Busca el nombre que aparece encima del personaje
+	local head = char:FindFirstChild("Head")
+	if not head then return end
+
+	-- Destruye cualquier BillboardGui de nombre que tenga
+	for _, v in pairs(head:GetChildren()) do
+		if v:IsA("BillboardGui") then
+			v:Destroy()
+		end
+	end
+
+	-- También intenta ocultar el Humanoid name
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		humanoid.NameDisplayDistance = 0
+	end
+end
+
+-- Aplicar al personaje actual
+if player.Character then
+	ocultarNombre(player.Character)
+end
+
+-- Aplicar cada vez que respawneas
+player.CharacterAdded:Connect(ocultarNombre)
+
+print("✅ Nombre ocultado")
