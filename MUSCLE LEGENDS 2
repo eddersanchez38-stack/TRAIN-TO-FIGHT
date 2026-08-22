@@ -37,6 +37,7 @@ local lockedCFrame = nil
 local autoFastReps = false
 local autoPushups = false
 local autoPunch = false
+local autoMassRebirth500 = false
 local muertoReciente = false
 local idiomaActual = "Espanol"
 
@@ -49,7 +50,8 @@ local traducciones = {
 local cristales = {
 	"Blue Crystal", "Frost Crystal", "Galaxy Oracle Crystal", "Green Crystal",
 	"Inferno Crystal", "Jungle Crystal", "Legends Crystal", "Muscle Elite Crystal",
-	"Mythical Crystal", "Secret Void Crystal", "Ultra Shockwave Crystal", "Unlimited Secrets Crystal"
+	"Mythical Crystal", "Secret Void Crystal", "Ultra Shockwave Crystal", "Unlimited Secrets Crystal",
+	"Infinity Void Crystal"
 }
 
 local teleports = {
@@ -244,7 +246,11 @@ TabFarm:CreateToggle({
 		hatchGui.Enabled = Value
 		if not Value then
 			abriendo = false
-			hatchBtn.Text = "🥚 AUTO HATCH\n🔴 OFF"
+			if cristalSeleccionado == "Infinity Void Crystal" then
+				hatchBtn.Text = "⚠️ NECESITAS\n2500 GEMAS"
+			else
+				hatchBtn.Text = "🥚 AUTO HATCH\n🔴 OFF"
+			end
 		end
 	end,
 })
@@ -264,6 +270,29 @@ TabFarm:CreateToggle({
 		else
 			lockedCFrame = nil
 		end
+	end,
+})
+
+TabFarm:CreateSection("🔄 Rebirth Automático")
+TabFarm:CreateToggle({
+	Name = "⚡ Auto Presionar Mass Rebirth (500)",
+	CurrentValue = false,
+	Callback = function(Value)
+		autoMassRebirth500 = Value
+	end,
+})
+
+TabFarm:CreateButton({
+	Name = "🚀 Presionar Mass Rebirth (500) una vez",
+	Callback = function()
+		pcall(function()
+			local btn500 = player.PlayerGui.gameGui.rebirthMenu.massRebirthFrame.massRebirth500
+			if btn500 then
+				for _, connection in pairs(getconnections(btn500.MouseButton1Click)) do
+					connection:Fire()
+				end
+			end
+		end)
 	end,
 })
 
@@ -317,6 +346,20 @@ TabCrystals:CreateDropdown({
 	CurrentOption = cristales[1],
 	Callback = function(Option)
 		cristalSeleccionado = Option[1]
+		if cristalSeleccionado == "Infinity Void Crystal" then
+			Rayfield:Notify({
+				Title = "⚠️ ADVERTENCIA",
+				Content = "NECESITAS 2500 GEMAS VERDES",
+				Duration = 5,
+			})
+			hatchBtn.Text = "⚠️ NECESITAS\n2500 GEMAS"
+		else
+			if abriendo then
+				hatchBtn.Text = "🥚 AUTO HATCH\n🟢 ON"
+			else
+				hatchBtn.Text = "🥚 AUTO HATCH\n🔴 OFF"
+			end
+		end
 	end,
 })
 
@@ -475,7 +518,11 @@ TabConfig:CreateParagraph({
 -- Acción Botón Flotante
 hatchBtn.MouseButton1Click:Connect(function()
 	abriendo = not abriendo
-	hatchBtn.Text = abriendo and "🥚 AUTO HATCH\n🟢 ON" or "🥚 AUTO HATCH\n🔴 OFF"
+	if cristalSeleccionado == "Infinity Void Crystal" then
+		hatchBtn.Text = abriendo and "⚠️ NECESITAS\n2500 GEMAS" or "⚠️ NECESITAS\n2500 GEMAS"
+	else
+		hatchBtn.Text = abriendo and "🥚 AUTO HATCH\n🟢 ON" or "🥚 AUTO HATCH\n🔴 OFF"
+	end
 end)
 
 -- Sistema de Muerte
@@ -582,6 +629,17 @@ task.spawn(function()
 		if autoEvolve and autoEvolveRemote then
 			pcall(function()
 				autoEvolveRemote:InvokeServer()
+			end)
+		end
+
+		if autoMassRebirth500 then
+			pcall(function()
+				local btn500 = player.PlayerGui.gameGui.rebirthMenu.massRebirthFrame.massRebirth500
+				if btn500 then
+					for _, connection in pairs(getconnections(btn500.MouseButton1Click)) do
+						connection:Fire()
+					end
+				end
 			end)
 		end
 
