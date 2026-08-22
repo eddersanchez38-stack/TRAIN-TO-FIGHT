@@ -63,7 +63,7 @@ local teleports = {
 	{Name = "👑 Muscle Kings Gym", CFrame = CFrame.new(-8625.93, 14.91, -5730.47)},
 	{Name = "🔮 Secret Island", CFrame = CFrame.new(256.96, 16.41, -2015.02)},
 	{Name = "🌌 Secret Gym", CFrame = CFrame.new(-1825.00, 102.23, -3743.00)},
-	{Name = "💎 Secret Crystal", CFrame = CFrame.new(-1795.65, 31.93, -4470.89)},
+	{Name = "💎 Secret Crystal", CFrame = CFrame.new(-1034.99, 35.86, -3606.23)},
 }
 
 local inicio = {
