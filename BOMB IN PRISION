@@ -1,0 +1,600 @@
+-- Cargar la librería Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Animación / Notificación de inicio épica
+Rayfield:Notify({
+   Title = "⚡ E&T SCRIPTS PRESENTS 🗿",
+   Content = "Cargando Bomb in Prison Auto Farm...",
+   Duration = 6.5,
+   Image = 4483362458,
+   Actions = {
+      Ignorar = {
+         Name = "¡Listo!",
+         Callback = function()
+         end
+      },
+   },
+})
+
+local Window = Rayfield:CreateWindow({
+   Name = "⚡ E&T SCRIPTS EDER2302 AND TOCINACIO23021|CLIENT READY",
+   LoadingTitle = "Bomb in Prison - Auto Farm",
+   LoadingSubtitle = "by E&T Scripts",
+   ConfigurationSaving = {
+      Enabled = false,
+   },
+   KeySystem = false,
+})
+
+-- Servicios necesarios
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local CoreGui = game:GetService("CoreGui")
+
+-- Estados de los Auto Farms
+local farmingArms = false
+local farmingChest = false
+local farmingBack = false
+local farmingAbs = false
+local farmingLegs = false
+local farmingFood = false
+local farmingEvolution = false
+local fightingWeak = false
+local fightingModerate = false
+local fightingHard = false
+local fightingImpossible = false
+local fightingExtreme = false
+local maxJugadoresBuscados = 5 -- Valor por defecto para el filtro de jugadores
+
+-- Función para mover al jugador caminando
+local function caminarHacia(pos)
+   local character = LocalPlayer.Character
+   if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   local rootPart = character.HumanoidRootPart
+
+   if humanoid then
+      humanoid:MoveTo(pos)
+      
+      local reached = false
+      local connection
+      connection = RunService.Stepped:Connect(function()
+         if (rootPart.Position - pos).Magnitude < 4 then
+            reached = true
+            humanoid:MoveTo(rootPart.Position)
+            connection:Disconnect()
+         end
+      end)
+
+      local startTick = tick()
+      while not reached and (tick() - startTick < 15) do
+         task.wait(0.1)
+         if not character or not character.Parent then 
+            connection:Disconnect()
+            break 
+         end
+      end
+      connection:Disconnect()
+   end
+end
+
+-- Función para activar ProximityPrompts cercanos
+local function activarProximityPromptCercano()
+   local character = LocalPlayer.Character
+   if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+   local rootPart = character.HumanoidRootPart
+
+   for _, descendant in ipairs(workspace:GetDescendants()) do
+      if descendant:IsA("ProximityPrompt") then
+         local parent = descendant.Parent
+         local partPos = nil
+         if parent:IsA("BasePart") then
+            partPos = parent.Position
+         elseif parent:IsA("Model") and parent.PrimaryPart then
+            partPos = parent.PrimaryPart.Position
+         end
+
+         if partPos and (rootPart.Position - partPos).Magnitude <= (descendant.MaxActivationDistance + 5) then
+            fireproximityprompt(descendant)
+         end
+      end
+   end
+end
+
+-- Función para simular clics en la pantalla por 10 segundos y descansar por 5 segundos (Stats)
+local function loopAccionPantalla(duracionTrabajo, duracionDescanso)
+   local tiempoInicio = tick()
+   while (tick() - tiempoInicio < duracionTrabajo) and 
+         (farmingArms or farmingChest or farmingBack or farmingAbs or farmingLegs or farmingFood or farmingEvolution) do
+      
+      VirtualUser:Button1Down(Vector2.new(0,0))
+      task.wait(0.1)
+      VirtualUser:Button1Up(Vector2.new(0,0))
+      
+      task.wait(0.5)
+   end
+   
+   if farmingArms or farmingChest or farmingBack or farmingAbs or farmingLegs or farmingFood or farmingEvolution then
+      task.wait(duracionDescanso)
+   end
+end
+
+-- Función para clics muy rápidos en Auto Fight durante 15 segundos
+local function loopAutoFight(flagCheckFunc)
+   local tiempoInicio = tick()
+   while (tick() - tiempoInicio < 15) and flagCheckFunc() do
+      VirtualUser:Button1Down(Vector2.new(0,0))
+      task.wait(0.02)
+      VirtualUser:Button1Up(Vector2.new(0,0))
+      task.wait(0.02)
+   end
+end
+
+-- Interfaz visual deslizante (Frame flotante personalizado para la lista de servidores)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ETServerBrowserGui"
+ScreenGui.ResetOnSpawn = false
+pcall(function()
+   ScreenGui.Parent = CoreGui
+end)
+if not ScreenGui.Parent then
+   ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "ServerFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 15
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Text = "⚡ Servidores Filtrados por Jugadores"
+TitleLabel.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = TitleLabel
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.Text = "X"
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+   MainFrame.Visible = false
+end)
+
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, -20, 1, -70)
+ScrollingFrame.Position = UDim2.new(0, 10, 0, 60)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.BorderSizePixel = 0
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.Parent = ScrollingFrame
+
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+   ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+local function actualizarListaServidoresConFiltro()
+   for _, child in ipairs(ScrollingFrame:GetChildren()) do
+      if child:IsA("TextButton") then
+         child:Destroy()
+      end
+   end
+
+   pcall(function()
+      local servers = {}
+      local cursor = ""
+      for i = 1, 3 do
+         local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+         if cursor ~= "" then
+            url = url .. "&cursor=" .. cursor
+         end
+         local req = game:HttpGet(url)
+         local data = HttpService:JSONDecode(req)
+         if data and data.data then
+            for _, s in ipairs(data.data) do
+               if s.playing and s.maxPlayers and s.playing <= maxJugadoresBuscados and s.playing < s.maxPlayers then
+                  table.insert(servers, {id = s.id, playing = s.playing, max = s.maxPlayers})
+               end
+            end
+            if data.nextPageCursor then
+               cursor = data.nextPageCursor
+            else
+               break
+            end
+         else
+            break
+         end
+      end
+
+      table.sort(servers, function(a, b)
+         return a.playing < b.playing
+      end)
+
+      if #servers > 0 then
+         for index, s in ipairs(servers) do
+            local ServerBtn = Instance.new("TextButton")
+            ServerBtn.Size = UDim2.new(1, -10, 0, 40)
+            ServerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            ServerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ServerBtn.TextSize = 14
+            ServerBtn.Font = Enum.Font.SourceSans
+            ServerBtn.Text = " Servidor #" .. index .. " | Gente: " .. s.playing .. "/" .. s.max
+            ServerBtn.Parent = ScrollingFrame
+
+            local BtnCorner = Instance.new("UICorner")
+            BtnCorner.CornerRadius = UDim.new(0, 6)
+            BtnCorner.Parent = ServerBtn
+
+            ServerBtn.MouseButton1Click:Connect(function()
+               Rayfield:Notify({
+                  Title = "Teletransportando",
+                  Content = "Entrando al servidor con " .. s.playing .. " jugadores...",
+                  Duration = 3,
+                  Image = 4483362458,
+               })
+               TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+            end)
+         end
+      else
+         local NoServerBtn = Instance.new("TextButton")
+         NoServerBtn.Size = UDim2.new(1, -10, 0, 40)
+         NoServerBtn.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+         NoServerBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+         NoServerBtn.TextSize = 13
+         NoServerBtn.Font = Enum.Font.SourceSans
+         NoServerBtn.Text = "No hay servidores con <= " .. maxJugadoresBuscados .. " jugadores."
+         NoServerBtn.Parent = ScrollingFrame
+      end
+   end)
+end
+
+-- Pestaña Configuración (Rejoin, Input de límite de jugadores, Buscador y Anti AFK)
+local TabConfig = Window:CreateTab("Configuracion", 4483362458)
+
+TabConfig:CreateButton({
+   Name = "Reconectarse (Rejoin)",
+   Callback = function()
+      TeleportService:Teleport(game.PlaceId, LocalPlayer)
+   end,
+})
+
+TabConfig:CreateInput({
+   Name = "Máximo de Jugadores por Servidor",
+   PlaceholderText = "Ej: 5 (Número máximo)",
+   NumbersOnly = true,
+   CurrentValue = "5",
+   Flag = "MaxPlayersInput",
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+         maxJugadoresBuscados = num
+      end
+   end,
+})
+
+TabConfig:CreateButton({
+   Name = "Buscar Servidores con este Límite",
+   Callback = function()
+      actualizarListaServidoresConFiltro()
+      MainFrame.Visible = true
+      Rayfield:Notify({
+         Title = "Buscador",
+         Content = "¡Buscando servidores con máx. " .. maxJugadoresBuscados .. " jugadores!",
+         Duration = 3,
+         Image = 4483362458,
+      })
+   end,
+})
+
+TabConfig:CreateButton({
+   Name = "Anti AFK (Infinite Yield)",
+   Callback = function()
+      pcall(function()
+         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Infinite-Yield-FE-239454"))()
+      end)
+      Rayfield:Notify({
+         Title = "Anti AFK",
+         Content = "¡Infinite Yield ejecutado correctamente!",
+         Duration = 4,
+         Image = 4483362458,
+      })
+   end,
+})
+
+-- Pestaña Principal (Farm Stats)
+local TabFarm = Window:CreateTab("Auto Farm Stats", 4483362458)
+
+TabFarm:CreateToggle({
+   Name = "Auto Arms",
+   CurrentValue = false,
+   Flag = "AutoArms",
+   Callback = function(Value)
+      farmingArms = Value
+      task.spawn(function()
+         while farmingArms do
+            caminarHacia(Vector3.new(61.08, 4.73, 38.54))
+            if not farmingArms then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            loopAccionPantalla(10, 5)
+            task.wait(0.5)
+         end
+      end)
+   end,
+})
+
+TabFarm:CreateToggle({
+   Name = "Auto Chest",
+   CurrentValue = false,
+   Flag = "AutoChest",
+   Callback = function(Value)
+      farmingChest = Value
+      task.spawn(function()
+         while farmingChest do
+            caminarHacia(Vector3.new(24.36, 4.83, 65.38))
+            if not farmingChest then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            loopAccionPantalla(10, 5)
+            task.wait(0.5)
+         end
+      end)
+   end,
+})
+
+TabFarm:CreateToggle({
+   Name = "Auto Back",
+   CurrentValue = false,
+   Flag = "AutoBack",
+   Callback = function(Value)
+      farmingBack = Value
+      task.spawn(function()
+         while farmingBack do
+            caminarHacia(Vector3.new(-61.48, 4.74, 66.62))
+            if not farmingBack then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            loopAccionPantalla(10, 5)
+            task.wait(0.5)
+         end
+      end)
+   end,
+})
+
+TabFarm:CreateToggle({
+   Name = "Auto Abs",
+   CurrentValue = false,
+   Flag = "AutoAbs",
+   Callback = function(Value)
+      farmingAbs = Value
+      task.spawn(function()
+         while farmingAbs do
+            caminarHacia(Vector3.new(-56.25, 4.74, -14.96))
+            if not farmingAbs then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            loopAccionPantalla(10, 5)
+            task.wait(0.5)
+         end
+      end)
+   end,
+})
+
+TabFarm:CreateToggle({
+   Name = "Auto Legs",
+   CurrentValue = false,
+   Flag = "AutoLegs",
+   Callback = function(Value)
+      farmingLegs = Value
+      task.spawn(function()
+         while farmingLegs do
+            caminarHacia(Vector3.new(6.14, 4.71, -15.09))
+            if not farmingLegs then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            loopAccionPantalla(10, 5)
+            task.wait(0.5)
+         end
+      end)
+   end,
+})
+
+-- Pestaña Stamina
+local TabStamina = Window:CreateTab("Stamina", 4483362458)
+
+TabStamina:CreateToggle({
+   Name = "Food",
+   CurrentValue = false,
+   Flag = "AutoFood",
+   Callback = function(Value)
+      farmingFood = Value
+      task.spawn(function()
+         while farmingFood do
+            caminarHacia(Vector3.new(-64.55, 4.57, -61.41))
+            if not farmingFood then break end
+            activarProximityPromptCercano()
+            
+            task.wait(5)
+            if not farmingFood then break end
+
+            caminarHacia(Vector3.new(-12.36, 4.55, -65.78))
+            if not farmingFood then break end
+            activarProximityPromptCercano()
+            
+            local tiempoEspera = 0
+            while tiempoEspera < 30 and farmingFood do
+               task.wait(1)
+               tiempoEspera = tiempoEspera + 1
+            end
+         end
+      end)
+   end,
+})
+
+TabStamina:CreateToggle({
+   Name = "Auto Evolution eat",
+   CurrentValue = false,
+   Flag = "AutoEvolutionEat",
+   Callback = function(Value)
+      farmingEvolution = Value
+      task.spawn(function()
+         while farmingEvolution do
+            caminarHacia(Vector3.new(-88.20, 4.55, -65.73))
+            if not farmingEvolution then break end
+            activarProximityPromptCercano()
+            task.wait(5)
+         end
+      end)
+   end,
+})
+
+-- Pestaña Auto Fight
+local TabFight = Window:CreateTab("Auto Fight", 4483362458)
+
+TabFight:CreateToggle({
+   Name = "AUTO FIGHT weak",
+   CurrentValue = false,
+   Flag = "FightWeak",
+   Callback = function(Value)
+      fightingWeak = Value
+      task.spawn(function()
+         while fightingWeak do
+            caminarHacia(Vector3.new(60.92, 4.73, 17.63))
+            if not fightingWeak then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            if not fightingWeak then break end
+            loopAutoFight(function() return fightingWeak end)
+            if not fightingWeak then break end
+            activarProximityPromptCercano()
+            task.wait(1)
+         end
+      end)
+   end,
+})
+
+TabFight:CreateToggle({
+   Name = "Auto fight moderate",
+   CurrentValue = false,
+   Flag = "FightModerate",
+   Callback = function(Value)
+      fightingModerate = Value
+      task.spawn(function()
+         while fightingModerate do
+            caminarHacia(Vector3.new(-17.98, 4.59, 66.81))
+            if not fightingModerate then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            if not fightingModerate then break end
+            loopAutoFight(function() return fightingModerate end)
+            if not fightingModerate then break end
+            activarProximityPromptCercano()
+            task.wait(1)
+         end
+      end)
+   end,
+})
+
+TabFight:CreateToggle({
+   Name = "Auto fight Hard",
+   CurrentValue = false,
+   Flag = "FightHard",
+   Callback = function(Value)
+      fightingHard = Value
+      task.spawn(function()
+         while fightingHard do
+            caminarHacia(Vector3.new(-57.35, 4.74, 18.41))
+            if not fightingHard then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            if not fightingHard then break end
+            loopAutoFight(function() return fightingHard end)
+            if not fightingHard then break end
+            activarProximityPromptCercano()
+            task.wait(1)
+         end
+      end)
+   end,
+})
+
+TabFight:CreateToggle({
+   Name = "Auto fight Imposible",
+   CurrentValue = false,
+   Flag = "FightImpossible",
+   Callback = function(Value)
+      fightingImpossible = Value
+      task.spawn(function()
+         while fightingImpossible do
+            caminarHacia(Vector3.new(0.41, 4.55, 22.56))
+            if not farmingImpossible then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            if not fightingImpossible then break end
+            loopAutoFight(function() return fightingImpossible end)
+            if not fightingImpossible then break end
+            activarProximityPromptCercano()
+            task.wait(1)
+         end
+      end)
+   end,
+})
+
+TabFight:CreateToggle({
+   Name = "Auto fight Extreme",
+   CurrentValue = false,
+   Flag = "FightExtreme",
+   Callback = function(Value)
+      fightingExtreme = Value
+      task.spawn(function()
+         while fightingExtreme do
+            caminarHacia(Vector3.new(-16.03, 4.58, -17.13))
+            if not fightingExtreme then break end
+            activarProximityPromptCercano()
+            task.wait(0.5)
+            if not fightingExtreme then break end
+            loopAutoFight(function() return fightingExtreme end)
+            if not fightingExtreme then break end
+            activarProximityPromptCercano()
+            task.wait(1)
+         end
+      end)
+   end,
+})
+
+Rayfield:LoadConfiguration()
