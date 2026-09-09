@@ -9,6 +9,7 @@ local textService = game:GetService("TextService")
 local StarterGui = game:GetService("StarterGui")
 local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 
 -- local player
 local player = players.LocalPlayer
@@ -22,10 +23,9 @@ local playerGui = player:WaitForChild("PlayerGui")
 local tweening = false
 -- auto farm values --
 local index = 1
-
--- rayfield --
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-local Window = Rayfield:CreateWindow({
+ -- rayfield --
+ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+ local Window = Rayfield:CreateWindow({
    Name = "⚡E&T SCRIPTS & TOCINACIO23021 & EDER2302 CLIENT",
    Icon = 0,
    LoadingTitle = "E&T Suite Loading...",
@@ -56,7 +56,7 @@ local blockData = player:WaitForChild("Data")
 local blocksFolder = workspace:WaitForChild("Blocks")
 -- variable to track paste percentage and show the player
 local pastePercent = 0
--- variable to track how many used of each block there is
+-- variable to track how many used of each block there is ( doesnt scale with count unfortunately)
 local usedList = {}
 -- player input
 local selectedBase = nil
@@ -64,11 +64,12 @@ local autofarm = false
 local rescaleClick = false
 local playerToBring = nil
 local ignoreAnchored = true
+local sitInMouseClickSeatToggle = false
 
 -- auto build
 local clipboard = nil
 local function getBlockID(name)
-    return blockData:FindFirstChild(name) and blockData:FindFirstChild(name).Value or 9 
+    return blockData:FindFirstChild(name) and blockData:FindFirstChild(name).Value or 9 -- return 9 if block not found(WoodBlock)
 end
 
 local function setTransparency(transparencyWanted : number, block : Model) : ()
@@ -84,7 +85,14 @@ local function setTransparency(transparencyWanted : number, block : Model) : ()
         tool = character.PropertiesTool
     end
 
-    local args = {"Transparency", {block}}
+    local args = 
+    {
+        "Transparency",
+        {
+            block
+        }
+    }
+
     task.spawn(function()
         for i = 1,calls do
             tool.SetPropertieRF:InvokeServer(unpack(args))
@@ -103,14 +111,23 @@ local function setAnchored(block : Model)
         tool = character.PropertiesTool
     end
 
-    local args = {"Anchored", {block}}
+    local args = 
+    {
+        "Anchored",
+        {
+            block
+        }
+    }
     task.spawn(function()
         tool.SetPropertieRF:InvokeServer(unpack(args))
     end)
 end
 
 local function rescaleBlock(block:Model,newPos:CFrame,newSize:Vector3) : ()
-    if not block then return end
+    if not block then 
+        print("Block Not Found, Function rescaleBlock")
+        return 
+    end
     local tool
     if character:FindFirstChild("ScalingTool") then
         tool = character["ScalingTool"]
@@ -120,13 +137,20 @@ local function rescaleBlock(block:Model,newPos:CFrame,newSize:Vector3) : ()
         tool = character.ScalingTool
     end
 
-    local args = {block, newSize, newPos}
+    local args = 
+    {
+        block,
+        newSize,
+        newPos
+    }
     task.spawn(function()
         tool.RF:InvokeServer(unpack(args))
     end)
+    
 end
 
 local function getPlayerZone(playerInstance : Player) : BasePart
+    
     local teamColor = playerInstance.TeamColor
     for _,v in pairs(workspace:GetChildren()) do
         if v:FindFirstChild("TeamColor") and v.TeamColor.Value then
@@ -135,6 +159,7 @@ local function getPlayerZone(playerInstance : Player) : BasePart
             end
         end
     end
+    print("Base Not Found for player: ".. playerInstance.Name)
     return nil
 end
 
@@ -148,7 +173,8 @@ local function placeBlock(name : string,pos : CFrame,relativeTo : BasePart,Ancho
         tool = character.BuildingTool
     end
     if not relativeTo then relativeTo = getPlayerZone(player) end
-    local args = {
+    local args = 
+    {
         name,
         getBlockID(name),
         relativeTo,
@@ -163,7 +189,14 @@ local function placeBlock(name : string,pos : CFrame,relativeTo : BasePart,Ancho
 end
 
 local function paintBlock(block : Model, color : Color3)
-    if not block or not block:FindFirstChild("PPart") then return end
+    if not block then 
+        print("Block Not Found, function paintBlock")
+        return 
+    end
+    if not block:FindFirstChild("PPart") then 
+        print("Not PPart found for: ".. block.Name)
+        return
+    end
     if block.PPart.Color == color then return end
     local tool
     if character:FindFirstChild("PaintingTool") then
@@ -173,17 +206,26 @@ local function paintBlock(block : Model, color : Color3)
         task.wait()
         tool = character.PaintingTool
     end
-    local args = {{block, color}}
+    local args = {
+        {
+            block,
+            color
+        }
+    }
     task.spawn(function()
         tool.RF:InvokeServer(args)
     end)
+    
 end
 
 local function getJoint(model : Model) : JointInstance?
     for _,v in pairs(model.PPart:GetChildren()) do
         if v:IsA("Snap") or v:IsA("Weld") then
-            if v.Part1 and not (v.Part1.Parent == model) then
-                return v.Part1
+            if v.Part1 then 
+                if not (v.Part1.Parent == model) then
+                    return v.Part1
+                end
+            else
             end
         end
     end
@@ -191,11 +233,19 @@ local function getJoint(model : Model) : JointInstance?
 end
 
 local function getNewBlockPos(hisBase : BasePart?, block : Model, myBase : BasePart?) : CFrame
-    if not block or not block:FindFirstChild("PPart") then return CFrame.new() end
-    if not hisBase or not myBase then return block.PPart.CFrame end
+    if not block or not block:FindFirstChild("PPart") then
+        warn("Block missing PPart:", block and block.Name or "nil")
+        return CFrame.new()
+    end
+
+    if not hisBase or not myBase then
+        return block.PPart.CFrame
+    end
+
     local offset = hisBase.CFrame:ToObjectSpace(block.PPart.CFrame)
     return myBase.CFrame * offset
 end
+
 
 local function copyBuild(blocks : Folder) : table
     local t = {}
@@ -221,7 +271,11 @@ local function copyBuild(blocks : Folder) : table
                     Size = block.PPart.Size,
                     Color = block.PPart.Color
                 })
+            else
+                print("You Dont Have Enough: ".. block.Name .. "s")
             end
+        else
+            print(block.Name.. " Didnt Have A PPart")
         end
     end
     return t
@@ -229,6 +283,7 @@ end
 
 local function getMissingBlocks(expectedList, createdList)
     local missing = {}
+
     for i, v in ipairs(expectedList) do
         local found = false
         for _, b in ipairs(createdList) do
@@ -241,12 +296,14 @@ local function getMissingBlocks(expectedList, createdList)
             table.insert(missing, {Index = i, Name = v.Name, Pos = v.Pos})
         end
     end
+
     return missing
 end
 
 local function getBlock(expected, createdList)
     local best = nil
     local bestDist = math.huge
+
     for _, b in ipairs(createdList) do
         if b and b:FindFirstChild("PPart") and b.Name == expected.Name then
             local dist = (b.PPart.Position - expected.Pos.Position).Magnitude
@@ -256,6 +313,7 @@ local function getBlock(expected, createdList)
             end
         end
     end
+
     return best
 end
 
@@ -278,19 +336,35 @@ local function pasteBuild(t, folder)
         childrenDebug += 1
         lastPlaced = tick()
     end) 
+    print("Started Placing Blocks")
     for i,v in ipairs(t) do
         placeBlock(v.Name,v.Pos,v.Relative,v.Anchored)
         pastePercent += 50/tCount
-        if i % 20 == 0 then task.wait(0.05) end
+        if i % 20 == 0 then
+            task.wait(0.05)
+        end
     end
-    repeat task.wait(0.1) until tick() - lastPlaced > 5
+    repeat
+        task.wait(0.1)
+    until tick() - lastPlaced > 5
+    print("Children Count After Placing: "..childrenDebug .. " Expected: ".. tCount)
+    if  tCount - childrenDebug > 0 then
+        local missing = getMissingBlocks(t,blocks)
+        print("Missing" .. #missing .. "children which includes:")
+            for _, b in ipairs(missing) do
+                print("Index:", b.Index, "Name:", b.Name, "Position:", b.Pos.Position)
+            end
+    end
+    print("Started Painting And Rescaling")
     local playerBaseList = folder:GetChildren()
     for i,v in ipairs(t) do
         local b = getBlock(v,playerBaseList)
         rescaleBlock(b,v.Pos,v.Size)
         paintBlock(b,v.Color)
         setTransparency(v.Transparency,b)
-        if i % 20 == 0 then task.wait(0.05) end
+        if i % 20 == 0 then
+            task.wait(0.05)
+        end
         pastePercent += 50/tCount
     end
     c:Disconnect()
@@ -299,25 +373,32 @@ end
 
 local function getPlayers()
     local playersy = {}
+
     for _,playery in pairs(game:GetService("Players"):GetChildren()) do
         table.insert(playersy,playery.DisplayName)
     end
+
     return playersy
 end
 
 local function bringPlayer(playerToBring : Player , firstSeat : Seat, secondSeat : Seat) : ()
     local originalPos = character:GetPivot()
+
     local otherPlayerCharacter = playerToBring.Character
-    if not otherPlayerCharacter then return end
+    if not otherPlayerCharacter then
+        print("Other Player No Character Found")
+        return
+    end
     local offset = firstSeat.CFrame:Inverse() * secondSeat.CFrame
     repeat
-        local torso = otherPlayerCharacter:FindFirstChild("LowerTorso") or otherPlayerCharacter:FindFirstChild("Torso")
-        if torso then
-            local newPivot = torso.CFrame * offset:Inverse()
-            firstSeat:PivotTo(newPivot + Vector3.new(math.random(-1,1),math.random(-1,1),math.random(-1,1)))
-        end
+    local torso = otherPlayerCharacter:FindFirstChild("LowerTorso") or otherPlayerCharacter:FindFirstChild("Torso")
+    if torso then
+        local newPivot = torso.CFrame * offset:Inverse()
+        firstSeat:PivotTo(newPivot + Vector3.new(math.random(-1,1),math.random(-1,1),math.random(-1,1)))
+    end
         task.wait(0.5)
     until not otherPlayerCharacter.Parent or otherPlayerCharacter.Humanoid.SeatPart
+
     firstSeat:PivotTo(originalPos)
 end
 
@@ -325,41 +406,43 @@ local function getCar() : Model
     return humanoid.SeatPart and humanoid.SeatPart.Parent or nil
 end
 
-local function getRealName(DisplayNamey : string) : string
-    for _,v in pairs(players:GetChildren()) do
-        if v.DisplayName == DisplayNamey then return v.Name end
-    end
-    return nil
-end
-
--- ====================================================================================
--- CREACIÓN DE PESTAÑAS (TABS) DE LA INTERFAZ
--- ====================================================================================
-local autoBuildTab = Window:CreateTab("⚡ Constructor Pro", "hammer")
+local autoBuildTab = Window:CreateTab("⚡ Constructor Pro","hammer")
 
 autoBuildTab:CreateButton({
     Name = "Place Wood Block",
     Callback = function()
         placeBlock("WoodBlock",HRP.CFrame,nil,true)
     end,
+
 })
 
 autoBuildTab:CreateToggle({
     Name = "Rescale Block ( click block )",
     Callback = function(Value)
         rescaleClick = Value
+        print("Set rescaleClick to: "..tostring(Value))
     end,
 })
 
 local mouse = player:GetMouse()
+
 mouse.Button1Down:Connect(function()
     if rescaleClick then
         if mouse.Target then
+            print(mouse.Target:GetFullName())
             local ppart = mouse.Target
             rescaleBlock(ppart.Parent,ppart.CFrame,Vector3.new(4,4,4))
         end
     end
 end)
+
+local function getRealName(DisplayNamey : string) : string
+    for _,v in pairs(players:GetChildren()) do
+        if v.DisplayName == DisplayNamey then return v.Name end
+    end
+    print("Player Not Found")
+    return nil
+end
 
 local dd = autoBuildTab:CreateDropdown({
     Name = "Choose Player Base To Copy",
@@ -408,8 +491,10 @@ autoBuildTab:CreateButton({
 local pasteStatus = autoBuildTab:CreateParagraph({
     Title = "Auto Build Progress", 
     Content = "0%"
+
 })
 
+-- updater
 task.spawn(function()
     while task.wait(0.2) do
         pasteStatus:Set({Title = "Auto Build Progress", Content = tostring(pastePercent) .. "%"})
@@ -425,7 +510,7 @@ autoBuildTab:CreateToggle({
     end,
 })
 
-local autoFarmTab = Window:CreateTab("🚀 Auto Farm Gold", "rocket")
+local autoFarmTab = Window:CreateTab("🚀 Auto Farm Gold","rocket")
 
 autoFarmTab:CreateToggle({
     Name = "Auto Farm Toggle",
@@ -435,7 +520,8 @@ autoFarmTab:CreateToggle({
     end,
 })
 
-local funTab = Window:CreateTab("✨ Funciones & Troll", "smile")
+local funTab = Window:CreateTab("✨ Funciones & Troll","smile")
+
 local firstSeat = nil
 local secondSeat = nil
 
@@ -460,6 +546,7 @@ funTab:CreateButton({
     Name = "Sit In The First Seat and Click",
     Callback = function()
         firstSeat = humanoid.SeatPart
+        print("firstSeat: "..firstSeat:GetFullName())
     end,
 })
 
@@ -467,6 +554,7 @@ funTab:CreateButton({
     Name = "Sit In The Second Seat and Click",
     Callback = function()
         secondSeat = humanoid.SeatPart
+        print("secondSeat: "..secondSeat:GetFullName())
     end,
 })
 
@@ -477,15 +565,44 @@ funTab:CreateButton({
             if secondSeat ~= firstSeat then
                 if playerToBring then
                     bringPlayer(playerToBring,firstSeat,secondSeat)
+                else
+                Rayfield:Notify({
+                    Name = "Please Select A Player and try again",
+                    Content = "Select A Valid Player!",
+                    Duration = 10,
+                    Image = "alert-triangle"
+                })
                 end
+            else
+            Rayfield:Notify({
+                Name = "Please Select Two DIFFERENT seats before trying again",
+                Content = "Select 2 Different Seats connected to the same base and try again",
+                Duration = 10,
+                Image = "alert-triangle"
+            })
             end
+        else
+            Rayfield:Notify({
+                Name = "Please Select Both Seats Before Trying",
+                Content = "Select 2 Different Seats connected to the same base and try again",
+                Duration = 10,
+                Image = "alert-triangle"
+            })
         end
     end,
 })
 
+
 funTab:CreateButton({
     Name = "Car Fly",
     Callback = function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local UserInputService = game:GetService("UserInputService")
+
+        local player = Players.LocalPlayer
+        local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
+
         local flying = false
         local flySpeed = 50
         local flyConnection
@@ -606,7 +723,7 @@ funTab:CreateButton({
 })
 
 -- ====================================================================================
--- SECCIÓN DE UTILIDADES (CÁMARA LIBRE / DRON)
+-- SECCIÓN DE UTILIDADES Y FUNCIONES (CÁMARA LIBRE / DRON)
 -- ====================================================================================
 local utilitiesTab = Window:CreateTab("🛠️ Utilidades", "settings")
 utilitiesTab:CreateSection("Herramientas de Cámara")
@@ -693,6 +810,41 @@ btnStroke.Color = Color3.fromRGB(70, 70, 85)
 btnStroke.Thickness = 1.5
 btnStroke.Parent = toggleButton
 
+local dragging = false
+local dragInput, dragStart, startPos
+
+toggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = toggleButton.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+toggleButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		toggleButton.Position = UDim2.new(
+			startPos.X.Scale, 
+			startPos.X.Offset + delta.X, 
+			startPos.Y.Scale, 
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
 local droneControlPanel = Instance.new("Frame")
 droneControlPanel.Name = "DroneControlPanel"
 droneControlPanel.Size = UDim2.new(0, 190, 0, 240)
@@ -734,8 +886,8 @@ local function createArrow(name, size, pos, text)
 	return btn
 end
 
-createArrow("Up", UDim2.new(0, 50, 0, 35), UDim2.new(0.5, -25, 0, 0), "▲")
-createArrow("Down", UDim2.new(0, 50, 0, 35), UDim2.new(0.5, -25, 1, -35), "▼")
+createArrow("Up", UDim2.new(0, 50, 0, 35), UDim2.new(0.5, -25, 0, 0), "▲ Arriba")
+createArrow("Down", UDim2.new(0, 50, 0, 35), UDim2.new(0.5, -25, 1, -35), "▼ Abajo")
 local btnForward = createArrow("Forward", UDim2.new(0, 50, 0, 45), UDim2.new(0.5, -25, 0.5, -50), "W")
 local btnBackward = createArrow("Backward", UDim2.new(0, 50, 0, 45), UDim2.new(0.5, -25, 0.5, 5), "S")
 local btnLeft = createArrow("Left", UDim2.new(0, 45, 0, 45), UDim2.new(0.5, -75, 0.5, -22), "A")
@@ -797,10 +949,12 @@ end
 
 local updatingSpeed = false
 local function updateSpeedFromInput(inputObject)
+	if isCinematicModeOn then return end 
 	local barPos = speedBar.AbsolutePosition
 	local barSize = speedBar.AbsoluteSize
 	local relativeX = math.clamp(inputObject.Position.X - barPos.X, 0, barSize.X)
 	local percentage = relativeX / barSize.X
+	
 	currentSpeed = MIN_SPEED + (percentage * (MAX_SPEED - MIN_SPEED))
 	updateSpeedUI()
 end
@@ -937,39 +1091,81 @@ cineStroke.Parent = cinematicButton
 lightButton.MouseButton1Click:Connect(function()
 	isLightOn = not isLightOn
 	droneSpotLight.Enabled = isLightOn
+	if isLightOn then
+		lightButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		lightStroke.Color = Color3.fromRGB(0, 255, 180)
+	else
+		lightButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+		lightStroke.Color = Color3.fromRGB(80, 80, 90)
+	end
 end)
 
 nightVisionButton.MouseButton1Click:Connect(function()
 	isNightVisionOn = not isNightVisionOn
 	nightVisionEffect.Enabled = isNightVisionOn
+	if isNightVisionOn then
+		nightVisionButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		nvStroke.Color = Color3.fromRGB(0, 255, 180)
+	else
+		nightVisionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+		nvStroke.Color = Color3.fromRGB(70, 70, 85)
+	end
 end)
 
 soundButton.MouseButton1Click:Connect(function()
 	isSoundOn = not isSoundOn
 	if isFreeCamActive and isSoundOn then pcall(function() droneSound:Play() end) else pcall(function() droneSound:Stop() end) end
+	if isSoundOn then
+		soundButton.Text = "🔊"
+		soundButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		soundStroke.Color = Color3.fromRGB(0, 255, 180)
+	else
+		soundButton.Text = "🔇"
+		soundButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+		soundStroke.Color = Color3.fromRGB(80, 80, 90)
+	end
 end)
 
 cinematicButton.MouseButton1Click:Connect(function()
 	isCinematicModeOn = not isCinematicModeOn
+	
 	if isCinematicModeOn then
 		savedSpeedBeforeCinematic = currentSpeed
 		currentSpeed = 8 
 		SENSITIVITY = 0.0015 
+		updateSpeedUI()
+		
+		cinematicButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		cineStroke.Color = Color3.fromRGB(0, 255, 180)
 	else
 		currentSpeed = savedSpeedBeforeCinematic
 		SENSITIVITY = 0.005 
+		updateSpeedUI()
+		
+		cinematicButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+		cineStroke.Color = Color3.fromRGB(70, 70, 85)
 	end
-	updateSpeedUI()
 end)
 
 hideHudButton.MouseButton1Click:Connect(function()
 	isHudVisible = not isHudVisible
+	
 	droneControlPanel.Visible = isHudVisible
 	toggleButton.Visible = isHudVisible
 	lightButton.Visible = isHudVisible
 	nightVisionButton.Visible = isHudVisible
 	soundButton.Visible = isHudVisible
 	cinematicButton.Visible = isHudVisible
+	
+	pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, isHudVisible) end)
+	
+	if isHudVisible then
+		hideHudButton.Text = "👁️"
+		hideHudButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	else
+		hideHudButton.Text = "🙈"
+		hideHudButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+	end
 end)
 
 local function updateMovementInput()
@@ -985,27 +1181,54 @@ end
 
 local function toggleFreeCam()
 	isFreeCamActive = not isFreeCamActive
+	
 	if isFreeCamActive then
 		originalCameraType = camera.CameraType
 		camera.CameraType = Enum.CameraType.Scriptable
+		
 		camPosition = camera.CFrame.Position
 		local lookVector = camera.CFrame.LookVector
 		camRotation = Vector2.new(math.atan2(-lookVector.X, -lookVector.Z), math.asin(lookVector.Y))
+		
 		droneSpotLight.Enabled = isLightOn
 		if isSoundOn then pcall(function() droneSound:Play() end) end
+		
 		toggleButton.Text = "Cámara Dron: ON"
+		toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+		btnStroke.Color = Color3.fromRGB(0, 255, 180)
+		
 		droneControlPanel.Visible = true
 		hideHudButton.Visible = true
 		lightButton.Visible = true
 		nightVisionButton.Visible = true
 		soundButton.Visible = true
 		cinematicButton.Visible = true
+		isHudVisible = true
+		hideHudButton.Text = "👁️"
+		hideHudButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 	else
 		camera.CameraType = originalCameraType
+		
 		droneSpotLight.Enabled = false
 		pcall(function() droneSound:Stop() end)
+		
 		nightVisionEffect.Enabled = false
+		isNightVisionOn = false
+		nightVisionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+		nvStroke.Color = Color3.fromRGB(70, 70, 85)
+		
+		if isCinematicModeOn then
+			isCinematicModeOn = false
+			currentSpeed = savedSpeedBeforeCinematic
+			SENSITIVITY = 0.005
+			cinematicButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+			cineStroke.Color = Color3.fromRGB(70, 70, 85)
+		end
+		
 		toggleButton.Text = "Cámara Dron: OFF"
+		toggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+		btnStroke.Color = Color3.fromRGB(70, 70, 85)
+		
 		droneControlPanel.Visible = false
 		hideHudButton.Visible = false
 		lightButton.Visible = false
@@ -1013,6 +1236,13 @@ local function toggleFreeCam()
 		soundButton.Visible = false
 		cinematicButton.Visible = false
 		toggleButton.Visible = false
+		
+		pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true) end)
+		
+		local character = player.Character
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			camera.CameraSubject = character:FindFirstChildOfClass("Humanoid")
+		end
 	end
 end
 
@@ -1026,24 +1256,219 @@ utilitiesTab:CreateToggle({
     end,
 })
 
+local wasDragged = false
+toggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		wasDragged = false
+	end
+end)
+toggleButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if dragging then wasDragged = true end
+	end
+end)
+toggleButton.MouseButton1Click:Connect(function()
+	if not wasDragged then toggleFreeCam() end
+end)
+
+local activeTouchId = nil
+local lastTouchPosition = Vector2.new()
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not isFreeCamActive then return end
+	
+	if input.UserInputType == Enum.UserInputType.Touch and not activeTouchId then
+		local pos = input.Position
+		local function isTouching(btn)
+			local bPos, bSize = btn.AbsolutePosition, btn.AbsoluteSize
+			return (pos.X >= bPos.X and pos.X <= bPos.X + bSize.X and pos.Y >= bPos.Y and pos.Y <= bPos.Y + bSize.Y)
+		end
+		
+		if not isTouching(toggleButton) and not isTouching(droneControlPanel) and not isTouching(hideHudButton) and not isTouching(lightButton) and not isTouching(nightVisionButton) and not isTouching(soundButton) and not isTouching(cinematicButton) then
+			activeTouchId = input
+			lastTouchPosition = Vector2.new(input.Position.X, input.Position.Y)
+		end
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not isFreeCamActive then return end
+	
+	if input == activeTouchId and input.UserInputType == Enum.UserInputType.Touch then
+		local currentPos = Vector2.new(input.Position.X, input.Position.Y)
+		local delta = currentPos - lastTouchPosition
+		lastTouchPosition = currentPos
+		
+		camRotation = camRotation - Vector2.new(delta.X * SENSITIVITY, delta.Y * SENSITIVITY)
+		camRotation = Vector2.new(camRotation.X, math.clamp(camRotation.Y, -math.pi/2 + 0.01, math.pi/2 - 0.01))
+	
+	elseif UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrent
+		local delta = UserInputService:GetMouseDelta()
+		camRotation = camRotation - Vector2.new(delta.X * SENSITIVITY, delta.Y * SENSITIVITY)
+		camRotation = Vector2.new(camRotation.X, math.clamp(camRotation.Y, -math.pi/2 + 0.01, math.pi/2 - 0.01))
+	else
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input == activeTouchId then activeTouchId = nil end
+end)
+
 runService.RenderStepped:Connect(function(dt)
 	if not isFreeCamActive then return end
+	
 	local moveInput = updateMovementInput()
+	
 	local yawCF = CFrame.Angles(0, camRotation.X, 0)
 	local pitchCF = CFrame.Angles(camRotation.Y, 0, 0)
 	local rotationCF = yawCF * pitchCF
+	
 	local moveDir = rotationCF:VectorToWorldSpace(moveInput)
 	camPosition = camPosition + (moveDir * currentSpeed * dt)
+	
 	camera.CFrame = CFrame.new(camPosition) * rotationCF
 	droneLightPart.CFrame = camera.CFrame
 end)
 
+
+-- ====================================================================================
+-- SECCIÓN DE CRÉDITOS Y REDES (E&T SCRIPTS)
+-- ====================================================================================
+local creditsTab = Window:CreateTab("⭐ Créditos", "info")
+
+creditsTab:CreateSection("Creadores del Script")
+
+creditsTab:CreateParagraph({
+    Title = "EDER2302",
+    Content = "TikTok: @eder.sanchez77\nhttps://www.tiktok.com/@eder.sanchez77?_r=1&_t=ZS-99a89n12wbK"
+})
+
+creditsTab:CreateButton({
+    Name = "Copiar Link TikTok (EDER2302)",
+    Callback = function()
+        pcall(function()
+            setclipboard("https://www.tiktok.com/@eder.sanchez77?_r=1&_t=ZS-99a89n12wbK")
+        end)
+        Rayfield:Notify({
+            Title = "¡Copiado al Portapapeles!",
+            Content = "TikTok de EDER2302 copiado con éxito.",
+            Duration = 4,
+            Image = "clipboard"
+        })
+    end,
+})
+
+creditsTab:CreateParagraph({
+    Title = "tocinacio23021",
+    Content = "TikTok: @tocinacio23021_oficial\nhttps://www.tiktok.com/@tocinacio23021_oficial?_r=1&_t=ZS-99a8FLyE7AS"
+})
+
+creditsTab:CreateButton({
+    Name = "Copiar Link TikTok (tocinacio23021)",
+    Callback = function()
+        pcall(function()
+            setclipboard("https://www.tiktok.com/@tocinacio23021_oficial?_r=1&_t=ZS-99a8FLyE7AS")
+        end)
+        Rayfield:Notify({
+            Title = "¡Copiado al Portapapeles!",
+            Content = "TikTok de tocinacio23021 copiado con éxito.",
+            Duration = 4,
+            Image = "clipboard"
+        })
+    end,
+})
+
+creditsTab:CreateSection("Comunidad y Soporte")
+
+creditsTab:CreateParagraph({
+    Title = "Canal de WhatsApp oficial",
+    Content = "Únete para enterarte de actualizaciones y más scripts:\nhttps://chat.whatsapp.com/DTMm7Eq4rWvEvMffpVEN7Z?s=cl&p=a&mlu=4&ilr=4"
+})
+
+creditsTab:CreateButton({
+    Name = "Copiar Link del Canal de WhatsApp",
+    Callback = function()
+        pcall(function()
+            setclipboard("https://chat.whatsapp.com/DTMm7Eq4rWvEvMffpVEN7Z?s=cl&p=a&mlu=4&ilr=4")
+        end)
+        Rayfield:Notify({
+            Title = "¡Copiado al Portapapeles!",
+            Content = "Link del canal de WhatsApp copiado con éxito.",
+            Duration = 4,
+            Image = "message-circle"
+        })
+    end,
+})
+
+
+task.spawn(function()
+    while true do
+        task.wait()
+        if autofarm then
+            if not HRP then continue end
+            if index == 11 then
+                local Stages = workspace:FindFirstChild("BoatStages")
+                if not Stages then continue end
+                local normalStages = Stages:FindFirstChild("NormalStages")
+                if not normalStages then continue end
+                local endpoint = normalStages:FindFirstChild("TheEnd")
+                if not endpoint then continue end
+                local chest = endpoint:FindFirstChild("GoldenChest")
+                if not chest then continue end
+                HRP:PivotTo(chest:GetPivot() + Vector3.new(0,0,-10))
+                local ii = 0
+                repeat 
+                    task.wait(1) 
+                    ii += 1
+                    if ii % 20 == 0 then
+                        HRP:PivotTo(chest:GetPivot() + Vector3.new(0,0,-10))
+                    end
+                    if not HRP then continue end
+                until (HRP.Position - chest:GetPivot().Position).Magnitude > 500
+                index = 1
+            else
+                local stages = workspace:FindFirstChild("BoatStages")
+                if not stages then continue end
+                local normalStages = stages:FindFirstChild("NormalStages")
+                if not normalStages then continue end
+                local roomName = "CaveStage"..index
+                local stage = normalStages:FindFirstChild(roomName)
+                if not stage then continue end
+                local darkPart = stage:FindFirstChild("DarknessPart")
+                if not darkPart then continue end
+                character:PivotTo(darkPart.CFrame - Vector3.new(0,0,15))
+                local tween2 = TS:Create(HRP,TweenInfo.new(2,Enum.EasingStyle.Linear),{CFrame = darkPart.CFrame + Vector3.new(0,0,20)})
+                tweening = true
+                tween2:Play()
+                tween2.Completed:Wait()
+                tweening = false
+                index += 1
+            end
+        end
+    end
+end)
+
+runService.Heartbeat:Connect(function()
+    if tweening then
+        HRP.Velocity = Vector3.zero
+    end
+end)
+
+player.CharacterAdded:Connect(function(charactery)
+    character = charactery
+    HRP = character:WaitForChild("HumanoidRootPart")
+    humanoid = character:WaitForChild("Humanoid")
+end)
+
 -- anti afk
+
 task.spawn(function()
     while task.wait(100) do
-        vim:SendKeyEvent(true, Enum.KeyCode.Tilde, false, nil)
-        task.wait(0.1)
-        vim:SendKeyEvent(false, Enum.KeyCode.Tilde, false, nil)
+            vim:SendKeyEvent(true, Enum.KeyCode.Tilde, false, nil)
+            task.wait(0.1)
+            vim:SendKeyEvent(false, Enum.KeyCode.Tilde, false, nil)
     end
 end)
 
