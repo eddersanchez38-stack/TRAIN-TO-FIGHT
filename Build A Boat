@@ -1,0 +1,1050 @@
+-- services --
+local vim = game:GetService("VirtualInputManager")
+local players = game:GetService("Players")
+local TS = game:GetService("TweenService")
+local workspace = system or game:GetService("Workspace") -- fallback
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local runService = game:GetService("RunService")
+local textService = game:GetService("TextService")
+local StarterGui = game:GetService("StarterGui")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+-- local player
+local player = players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local HRP = character:WaitForChild("HumanoidRootPart")
+local camera = workspace.CurrentCamera
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- flags --
+local tweening = false
+-- auto farm values --
+local index = 1
+
+-- rayfield --
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "⚡E&T SCRIPTS & TOCINACIO23021 & EDER2302 CLIENT",
+   Icon = 0,
+   LoadingTitle = "E&T Suite Loading...",
+   LoadingSubtitle = "by Eder2302 & Tocinacio23021",
+   Theme = "Amethyst", 
+   ToggleUIKeybind = "G",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "ET_Scripts",
+      FileName = "Build A Boat Config"
+   },
+})
+
+-- Notificación de inicio personalizada
+Rayfield:Notify({
+    Title = "⚡E&T SCRIPTS AND TOCINACIO23021 AND EDER2302 CLIENT READY",
+    Content = "¡El script se ha cargado con éxito!",
+    Duration = 6.5,
+    Image = "zap"
+})
+
+-- list for special blocks like glue that have multiple welds
+local specialList = {"Glue"}
+--paths
+local blockData = player:WaitForChild("Data")
+local blocksFolder = workspace:WaitForChild("Blocks")
+-- variable to track paste percentage and show the player
+local pastePercent = 0
+-- variable to track how many used of each block there is
+local usedList = {}
+-- player input
+local selectedBase = nil
+local autofarm = false
+local rescaleClick = false
+local playerToBring = nil
+local ignoreAnchored = true
+
+-- auto build
+local clipboard = nil
+local function getBlockID(name)
+    return blockData:FindFirstChild(name) and blockData:FindFirstChild(name).Value or 9 
+end
+
+local function setTransparency(transparencyWanted : number, block : Model) : ()
+    if not block then return end
+    if block.PPart.Transparency == transparencyWanted then return end
+    local calls = transparencyWanted / 0.25
+    local tool
+    if character:FindFirstChild("PropertiesTool") then
+        tool = character["PropertiesTool"]
+    else
+        humanoid:EquipTool(player.Backpack.PropertiesTool)
+        task.wait()
+        tool = character.PropertiesTool
+    end
+
+    local args = {"Transparency", {block}}
+    task.spawn(function()
+        for i = 1,calls do
+            tool.SetPropertieRF:InvokeServer(unpack(args))
+        end
+    end)
+end
+
+local function setAnchored(block : Model)
+    if not block then return end
+    local tool
+    if character:FindFirstChild("PropertiesTool") then
+        tool = character["PropertiesTool"]
+    else
+        humanoid:EquipTool(player.Backpack.PropertiesTool)
+        task.wait()
+        tool = character.PropertiesTool
+    end
+
+    local args = {"Anchored", {block}}
+    task.spawn(function()
+        tool.SetPropertieRF:InvokeServer(unpack(args))
+    end)
+end
+
+local function rescaleBlock(block:Model,newPos:CFrame,newSize:Vector3) : ()
+    if not block then return end
+    local tool
+    if character:FindFirstChild("ScalingTool") then
+        tool = character["ScalingTool"]
+    else
+        humanoid:EquipTool(player.Backpack.ScalingTool)
+        task.wait()
+        tool = character.ScalingTool
+    end
+
+    local args = {block, newSize, newPos}
+    task.spawn(function()
+        tool.RF:InvokeServer(unpack(args))
+    end)
+end
+
+local function getPlayerZone(playerInstance : Player) : BasePart
+    local teamColor = playerInstance.TeamColor
+    for _,v in pairs(workspace:GetChildren()) do
+        if v:FindFirstChild("TeamColor") and v.TeamColor.Value then
+            if v.TeamColor.Value == teamColor then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+local function placeBlock(name : string,pos : CFrame,relativeTo : BasePart,Anchored : boolean) : ()
+    local tool
+    if character:FindFirstChild("BuildingTool") then
+        tool = character["BuildingTool"]
+    else
+        humanoid:EquipTool(player.Backpack.BuildingTool)
+        task.wait()
+        tool = character.BuildingTool
+    end
+    if not relativeTo then relativeTo = getPlayerZone(player) end
+    local args = {
+        name,
+        getBlockID(name),
+        relativeTo,
+        relativeTo and relativeTo.CFrame:ToObjectSpace(pos) or CFrame.new(),
+        ignoreAnchored and true or Anchored,
+        pos,
+        false,
+    }
+    task.spawn(function()
+        tool.RF:InvokeServer(unpack(args))
+    end)
+end
+
+local function paintBlock(block : Model, color : Color3)
+    if not block or not block:FindFirstChild("PPart") then return end
+    if block.PPart.Color == color then return end
+    local tool
+    if character:FindFirstChild("PaintingTool") then
+        tool = character["PaintingTool"]
+    else
+        humanoid:EquipTool(player.Backpack.PaintingTool)
+        task.wait()
+        tool = character.PaintingTool
+    end
+    local args = {{block, color}}
+    task.spawn(function()
+        tool.RF:InvokeServer(args)
+    end)
+end
+
+local function getJoint(model : Model) : JointInstance?
+    for _,v in pairs(model.PPart:GetChildren()) do
+        if v:IsA("Snap") or v:IsA("Weld") then
+            if v.Part1 and not (v.Part1.Parent == model) then
+                return v.Part1
+            end
+        end
+    end
+    return getPlayerZone(player)
+end
+
+local function getNewBlockPos(hisBase : BasePart?, block : Model, myBase : BasePart?) : CFrame
+    if not block or not block:FindFirstChild("PPart") then return CFrame.new() end
+    if not hisBase or not myBase then return block.PPart.CFrame end
+    local offset = hisBase.CFrame:ToObjectSpace(block.PPart.CFrame)
+    return myBase.CFrame * offset
+end
+
+local function copyBuild(blocks : Folder) : table
+    local t = {}
+    local myBase = getPlayerZone(player)
+    local hisBase = getPlayerZone(players:FindFirstChild(blocks.Name))
+
+    for _,block in ipairs(blocks:GetChildren()) do
+        if block:FindFirstChild("PPart") then
+            if not (getBlockID(block.Name) == 0 or (usedList[block.Name] or 0) > getBlockID(block.Name)) then 
+                local relative = getJoint(block)
+                relative = relative == hisBase and myBase or relative
+                if usedList[block.Name] then
+                    usedList[block.Name] += 1
+                else
+                    usedList[block.Name] = 1
+                end
+                table.insert(t, {
+                    Name = block.Name,
+                    Pos = getNewBlockPos(hisBase, block, myBase),
+                    Relative = getPlayerZone(player),
+                    Transparency = block.PPart.Transparency,
+                    Anchored = block.PPart.Anchored,
+                    Size = block.PPart.Size,
+                    Color = block.PPart.Color
+                })
+            end
+        end
+    end
+    return t
+end
+
+local function getMissingBlocks(expectedList, createdList)
+    local missing = {}
+    for i, v in ipairs(expectedList) do
+        local found = false
+        for _, b in ipairs(createdList) do
+            if b and b:FindFirstChild("PPart") and (b.Name == v.Name) then
+                found = true
+                break
+            end
+        end
+        if not found then
+            table.insert(missing, {Index = i, Name = v.Name, Pos = v.Pos})
+        end
+    end
+    return missing
+end
+
+local function getBlock(expected, createdList)
+    local best = nil
+    local bestDist = math.huge
+    for _, b in ipairs(createdList) do
+        if b and b:FindFirstChild("PPart") and b.Name == expected.Name then
+            local dist = (b.PPart.Position - expected.Pos.Position).Magnitude
+            if dist < bestDist then
+                bestDist = dist
+                best = b
+            end
+        end
+    end
+    return best
+end
+
+local function getPlayerBase() : Folder
+    for _,child in pairs(blocksFolder:GetChildren()) do
+        if child.Name == player.Name then
+            return child
+        end
+    end
+end
+
+local function pasteBuild(t, folder)
+    pastePercent = 0
+    local childrenDebug = 0
+    local c
+    local blocks = {}
+    local tCount = #t
+    local lastPlaced = tick()
+    c = folder.ChildAdded:Connect(function(child)
+        childrenDebug += 1
+        lastPlaced = tick()
+    end) 
+    for i,v in ipairs(t) do
+        placeBlock(v.Name,v.Pos,v.Relative,v.Anchored)
+        pastePercent += 50/tCount
+        if i % 20 == 0 then task.wait(0.05) end
+    end
+    repeat task.wait(0.1) until tick() - lastPlaced > 5
+    local playerBaseList = folder:GetChildren()
+    for i,v in ipairs(t) do
+        local b = getBlock(v,playerBaseList)
+        rescaleBlock(b,v.Pos,v.Size)
+        paintBlock(b,v.Color)
+        setTransparency(v.Transparency,b)
+        if i % 20 == 0 then task.wait(0.05) end
+        pastePercent += 50/tCount
+    end
+    c:Disconnect()
+    pastePercent = 0
+end
+
+local function getPlayers()
+    local playersy = {}
+    for _,playery in pairs(game:GetService("Players"):GetChildren()) do
+        table.insert(playersy,playery.DisplayName)
+    end
+    return playersy
+end
+
+local function bringPlayer(playerToBring : Player , firstSeat : Seat, secondSeat : Seat) : ()
+    local originalPos = character:GetPivot()
+    local otherPlayerCharacter = playerToBring.Character
+    if not otherPlayerCharacter then return end
+    local offset = firstSeat.CFrame:Inverse() * secondSeat.CFrame
+    repeat
+        local torso = otherPlayerCharacter:FindFirstChild("LowerTorso") or otherPlayerCharacter:FindFirstChild("Torso")
+        if torso then
+            local newPivot = torso.CFrame * offset:Inverse()
+            firstSeat:PivotTo(newPivot + Vector3.new(math.random(-1,1),math.random(-1,1),math.random(-1,1)))
+        end
+        task.wait(0.5)
+    until not otherPlayerCharacter.Parent or otherPlayerCharacter.Humanoid.SeatPart
+    firstSeat:PivotTo(originalPos)
+end
+
+local function getCar() : Model
+    return humanoid.SeatPart and humanoid.SeatPart.Parent or nil
+end
+
+local function getRealName(DisplayNamey : string) : string
+    for _,v in pairs(players:GetChildren()) do
+        if v.DisplayName == DisplayNamey then return v.Name end
+    end
+    return nil
+end
+
+-- ====================================================================================
+-- CREACIÓN DE PESTAÑAS (TABS) DE LA INTERFAZ
+-- ====================================================================================
+local autoBuildTab = Window:CreateTab("⚡ Constructor Pro", "hammer")
+
+autoBuildTab:CreateButton({
+    Name = "Place Wood Block",
+    Callback = function()
+        placeBlock("WoodBlock",HRP.CFrame,nil,true)
+    end,
+})
+
+autoBuildTab:CreateToggle({
+    Name = "Rescale Block ( click block )",
+    Callback = function(Value)
+        rescaleClick = Value
+    end,
+})
+
+local mouse = player:GetMouse()
+mouse.Button1Down:Connect(function()
+    if rescaleClick then
+        if mouse.Target then
+            local ppart = mouse.Target
+            rescaleBlock(ppart.Parent,ppart.CFrame,Vector3.new(4,4,4))
+        end
+    end
+end)
+
+local dd = autoBuildTab:CreateDropdown({
+    Name = "Choose Player Base To Copy",
+    Options = getPlayers(),
+    CurrentOption = {"None Selected"},
+    MultipleOptions = false,
+    Callback = function(Options)
+        local realName = getRealName(Options[1])
+        for _,folder in pairs(blocksFolder:GetChildren()) do
+            if folder.Name == realName then
+                selectedBase = folder
+            end
+        end
+    end,
+})
+
+players.PlayerAdded:Connect(function()
+    dd:Refresh(getPlayers())
+end)
+
+autoBuildTab:CreateButton({
+    Name = "Copy Base",
+    Callback = function()
+        if selectedBase then
+            clipboard = copyBuild(selectedBase)
+        else
+            Rayfield:Notify({
+                Title = "Please Select A Valid Player",
+                Content = "Either No Player Selected or Player Left",
+                Duration = 10,
+                Image = "alert-triangle"
+            })
+        end
+    end,
+})
+
+autoBuildTab:CreateButton({
+    Name = "Paste Base",
+    Callback = function()
+        if clipboard then
+            pasteBuild(clipboard, getPlayerBase())
+        end
+    end,
+})
+
+local pasteStatus = autoBuildTab:CreateParagraph({
+    Title = "Auto Build Progress", 
+    Content = "0%"
+})
+
+task.spawn(function()
+    while task.wait(0.2) do
+        pasteStatus:Set({Title = "Auto Build Progress", Content = tostring(pastePercent) .. "%"})
+    end
+end)
+
+autoBuildTab:CreateSection("Auto Build Settings")
+autoBuildTab:CreateToggle({
+    Name = "Ignore Anchored State",
+    CurrentValue = true,
+    Callback = function(Value)
+        ignoreAnchored = Value
+    end,
+})
+
+local autoFarmTab = Window:CreateTab("🚀 Auto Farm Gold", "rocket")
+
+autoFarmTab:CreateToggle({
+    Name = "Auto Farm Toggle",
+    CurrentValue = false,
+    Callback = function(value)
+        autofarm = value
+    end,
+})
+
+local funTab = Window:CreateTab("✨ Funciones & Troll", "smile")
+local firstSeat = nil
+local secondSeat = nil
+
+funTab:CreateSection("Bring Player System")
+
+local dd2 = funTab:CreateDropdown({
+    Name = "Choose Player To Lock Or Bring",
+    Options = getPlayers(),
+    CurrentOption = {"None Selected"},
+    MultipleOptions = false,
+    Callback = function(Options)
+        local realName = getRealName(Options[1])
+        playerToBring = players:FindFirstChild(realName)
+    end,
+})
+
+players.PlayerAdded:Connect(function()
+    dd2:Refresh(getPlayers())
+end)
+
+funTab:CreateButton({
+    Name = "Sit In The First Seat and Click",
+    Callback = function()
+        firstSeat = humanoid.SeatPart
+    end,
+})
+
+funTab:CreateButton({
+    Name = "Sit In The Second Seat and Click",
+    Callback = function()
+        secondSeat = humanoid.SeatPart
+    end,
+})
+
+funTab:CreateButton({
+    Name = "Bring Player after selecting",
+    Callback = function()
+        if secondSeat and firstSeat then
+            if secondSeat ~= firstSeat then
+                if playerToBring then
+                    bringPlayer(playerToBring,firstSeat,secondSeat)
+                end
+            end
+        end
+    end,
+})
+
+funTab:CreateButton({
+    Name = "Car Fly",
+    Callback = function()
+        local flying = false
+        local flySpeed = 50
+        local flyConnection
+        local bv 
+
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "CarFlyGUI"
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+        screenGui.ResetOnSpawn = false
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 220, 0, 120)
+        frame.Position = UDim2.new(0.05, 0, 0.4, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(163, 255, 137)
+        frame.Parent = screenGui
+
+        local toggleButton = Instance.new("TextButton")
+        toggleButton.Size = UDim2.new(0, 100, 0, 30)
+        toggleButton.Position = UDim2.new(0, 10, 0, 10)
+        toggleButton.Text = "Toggle Fly"
+        toggleButton.Parent = frame
+
+        local speedLabel = Instance.new("TextLabel")
+        speedLabel.Size = UDim2.new(0, 50, 0, 30)
+        speedLabel.Position = UDim2.new(0, 120, 0, 10)
+        speedLabel.Text = tostring(flySpeed)
+        speedLabel.Parent = frame
+
+        local plusButton = Instance.new("TextButton")
+        plusButton.Size = UDim2.new(0, 30, 0, 30)
+        plusButton.Position = UDim2.new(0, 180, 0, 10)
+        plusButton.Text = "+"
+        plusButton.Parent = frame
+
+        local minusButton = Instance.new("TextButton")
+        minusButton.Size = UDim2.new(0, 30, 0, 30)
+        minusButton.Position = UDim2.new(0, 180, 0, 50)
+        minusButton.Text = "-"
+        minusButton.Parent = frame
+
+        local destroyButton = Instance.new("TextButton")
+        destroyButton.Size = UDim2.new(0, 100, 0, 30)
+        destroyButton.Position = UDim2.new(0, 10, 0, 80)
+        destroyButton.Text = "Destroy GUI"
+        destroyButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        destroyButton.Parent = frame
+
+        local ctrl = {f=0, b=0, l=0, r=0}
+        UserInputService.InputBegan:Connect(function(input, processed)
+            if processed then return end
+            if input.KeyCode == Enum.KeyCode.W then ctrl.f = 1 end
+            if input.KeyCode == Enum.KeyCode.S then ctrl.b = -1 end
+            if input.KeyCode == Enum.KeyCode.A then ctrl.l = -1 end
+            if input.KeyCode == Enum.KeyCode.D then ctrl.r = 1 end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then ctrl.f = 0 end
+            if input.KeyCode == Enum.KeyCode.S then ctrl.b = 0 end
+            if input.KeyCode == Enum.KeyCode.A then ctrl.l = 0 end
+            if input.KeyCode == Enum.KeyCode.D then ctrl.r = 0 end
+        end)
+
+        toggleButton.MouseButton1Click:Connect(function()
+            flying = not flying
+            local car = getCar()
+            if car then
+                local primaryPart = car.PrimaryPart or car:FindFirstChildWhichIsA("BasePart")
+                if primaryPart then
+                    if flying then
+                        if not bv or not bv.Parent then
+                            bv = Instance.new("BodyVelocity")
+                            bv.Name = "FlyBV"
+                            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                            bv.Parent = primaryPart
+                        end
+                        if not flyConnection then
+                            flyConnection = RunService.RenderStepped:Connect(function()
+                                if not flying then return end
+                                local cam = workspace.CurrentCamera
+                                local moveDir = (cam.CFrame.LookVector * (ctrl.f + ctrl.b)) +
+                                                ((cam.CFrame * CFrame.new(ctrl.l + ctrl.r, 0, 0)).p - cam.CFrame.p)
+
+                                if moveDir.Magnitude > 0 then
+                                    bv.Velocity = moveDir.Unit * flySpeed
+                                else
+                                    bv.Velocity = Vector3.zero
+                                end
+
+                                primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cam.CFrame.LookVector)
+                            end)
+                        end
+                    else
+                        if bv then bv:Destroy() bv = nil end
+                        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+                    end
+                end
+            end
+        end)
+
+        plusButton.MouseButton1Click:Connect(function()
+            flySpeed = flySpeed + 10
+            speedLabel.Text = tostring(flySpeed)
+        end)
+
+        minusButton.MouseButton1Click:Connect(function()
+            flySpeed = math.max(10, flySpeed - 10)
+            speedLabel.Text = tostring(flySpeed)
+        end)
+
+        destroyButton.MouseButton1Click:Connect(function()
+            flying = false
+            if bv then bv:Destroy() bv = nil end
+            if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+            screenGui:Destroy()
+        end)
+    end,
+})
+
+-- ====================================================================================
+-- SECCIÓN DE UTILIDADES (CÁMARA LIBRE / DRON)
+-- ====================================================================================
+local utilitiesTab = Window:CreateTab("🛠️ Utilidades", "settings")
+utilitiesTab:CreateSection("Herramientas de Cámara")
+
+local DEFAULT_SPEED = 60
+local MIN_SPEED = 5
+local MAX_SPEED = 500
+local currentSpeed = DEFAULT_SPEED
+local savedSpeedBeforeCinematic = DEFAULT_SPEED
+local SENSITIVITY = 0.005
+
+local isFreeCamActive = false
+local isHudVisible = true
+local isLightOn = true          
+local isNightVisionOn = false   
+local isSoundOn = true          
+local isCinematicModeOn = false  
+local camPosition = Vector3.new()
+local camRotation = Vector2.new()
+local originalCameraType = camera.CameraType
+
+local droneLightPart = Instance.new("Part")
+droneLightPart.Name = "DroneLightPart"
+droneLightPart.Size = Vector3.new(0.2, 0.2, 0.2)
+droneLightPart.Transparency = 1
+droneLightPart.CanCollide = false
+droneLightPart.Anchored = true
+droneLightPart.Parent = workspace
+
+local droneSpotLight = Instance.new("SpotLight")
+droneSpotLight.Brightness = 6
+droneSpotLight.Range = 70
+droneSpotLight.Angle = 80
+droneSpotLight.Color = Color3.fromRGB(255, 250, 240)
+droneSpotLight.Shadows = true
+droneSpotLight.Enabled = false
+droneSpotLight.Parent = droneLightPart
+
+local nightVisionEffect = Instance.new("ColorCorrectionEffect")
+nightVisionEffect.Name = "DroneNightVision"
+nightVisionEffect.Brightness = 0.15
+nightVisionEffect.Contrast = 0.3
+nightVisionEffect.Saturation = -0.85
+nightVisionEffect.TintColor = Color3.fromRGB(120, 255, 140)
+nightVisionEffect.Enabled = false
+nightVisionEffect.Parent = Lighting
+
+local droneSound = Instance.new("Sound")
+droneSound.Name = "DroneEngineSound"
+droneSound.SoundId = "rbxassetid://9119413023"
+droneSound.Volume = 3.0
+droneSound.Looped = true
+droneSound.Parent = droneLightPart
+
+if playerGui:FindFirstChild("DroneCameraGui") then
+	playerGui.DroneCameraGui:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DroneCameraGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleDroneCam"
+toggleButton.Size = UDim2.new(0, 140, 0, 45)
+toggleButton.Position = UDim2.new(0.5, -70, 0.85, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 15
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Text = "Cámara Dron: OFF"
+toggleButton.AutoButtonColor = false
+toggleButton.Parent = screenGui
+toggleButton.Visible = false
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = toggleButton
+
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.fromRGB(70, 70, 85)
+btnStroke.Thickness = 1.5
+btnStroke.Parent = toggleButton
+
+local droneControlPanel = Instance.new("Frame")
+droneControlPanel.Name = "DroneControlPanel"
+droneControlPanel.Size = UDim2.new(0, 190, 0, 240)
+droneControlPanel.Position = UDim2.new(0, 20, 1, -260)
+droneControlPanel.BackgroundTransparency = 1
+droneControlPanel.Visible = false
+droneControlPanel.Parent = screenGui
+
+local arrowsContainer = Instance.new("Frame")
+arrowsContainer.Name = "ArrowsContainer"
+arrowsContainer.Size = UDim2.new(0, 180, 0, 180)
+arrowsContainer.Position = UDim2.new(0, 5, 0, 0)
+arrowsContainer.BackgroundTransparency = 1
+arrowsContainer.Parent = droneControlPanel
+
+local function createArrow(name, size, pos, text)
+	local btn = Instance.new("TextButton")
+	btn.Name = name
+	btn.Size = size
+	btn.Position = pos
+	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+	btn.BackgroundTransparency = 0.2
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.TextSize = 18
+	btn.Font = Enum.Font.GothamBold
+	btn.Text = text
+	btn.AutoButtonColor = false
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = btn
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(80, 80, 100)
+	stroke.Thickness = 1
+	stroke.Parent = btn
+	
+	btn.Parent = arrowsContainer
+	return btn
+end
+
+createArrow("Up", UDim2.new(0, 50, 0, 35), UDim2.new(0.5, -25, 0, 0), "▲")
+createArrow("Down", UDim2.new(0, 50, 0, 35), UDim2.new(0.5, -25, 1, -35), "▼")
+local btnForward = createArrow("Forward", UDim2.new(0, 50, 0, 45), UDim2.new(0.5, -25, 0.5, -50), "W")
+local btnBackward = createArrow("Backward", UDim2.new(0, 50, 0, 45), UDim2.new(0.5, -25, 0.5, 5), "S")
+local btnLeft = createArrow("Left", UDim2.new(0, 45, 0, 45), UDim2.new(0.5, -75, 0.5, -22), "A")
+local btnRight = createArrow("Right", UDim2.new(0, 45, 0, 45), UDim2.new(0.5, 30, 0.5, -22), "D")
+
+local movementStates = { Forward = false, Backward = false, Left = false, Right = false, Up = false, Down = false }
+
+btnForward.MouseButton1Down:Connect(function() movementStates.Forward = true end)
+btnForward.MouseButton1Up:Connect(function() movementStates.Forward = false end)
+btnBackward.MouseButton1Down:Connect(function() movementStates.Backward = true end)
+btnBackward.MouseButton1Up:Connect(function() movementStates.Backward = false end)
+btnLeft.MouseButton1Down:Connect(function() movementStates.Left = true end)
+btnLeft.MouseButton1Up:Connect(function() movementStates.Left = false end)
+btnRight.MouseButton1Down:Connect(function() movementStates.Right = true end)
+btnRight.MouseButton1Up:Connect(function() movementStates.Right = false end)
+droneControlPanel.ArrowsContainer.Up.MouseButton1Down:Connect(function() movementStates.Up = true end)
+droneControlPanel.ArrowsContainer.Up.MouseButton1Up:Connect(function() movementStates.Up = false end)
+droneControlPanel.ArrowsContainer.Down.MouseButton1Down:Connect(function() movementStates.Down = true end)
+droneControlPanel.ArrowsContainer.Down.MouseButton1Up:Connect(function() movementStates.Down = false end)
+
+local speedBar = Instance.new("Frame")
+speedBar.Name = "SpeedBar"
+speedBar.Size = UDim2.new(0, 180, 0, 35)
+speedBar.Position = UDim2.new(0, 5, 1, -40)
+speedBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+speedBar.BackgroundTransparency = 0.3
+speedBar.Parent = droneControlPanel
+
+local speedBarCorner = Instance.new("UICorner")
+speedBarCorner.CornerRadius = UDim.new(0, 6)
+speedBarCorner.Parent = speedBar
+
+local speedFill = Instance.new("Frame")
+speedFill.Name = "SpeedFill"
+speedFill.Size = UDim2.new((currentSpeed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED), 0, 1, 0)
+speedFill.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+speedFill.BackgroundTransparency = 0.2
+speedFill.Parent = speedBar
+
+local speedFillCorner = Instance.new("UICorner")
+speedFillCorner.CornerRadius = UDim.new(0, 6)
+speedFillCorner.Parent = speedFill
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Name = "SpeedLabel"
+speedLabel.Size = UDim2.new(1, 0, 1, 0)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.TextSize = 13
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.Text = "Velocidad: " .. math.floor(currentSpeed)
+speedLabel.Parent = speedBar
+
+local function updateSpeedUI()
+	local percentage = (currentSpeed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)
+	speedFill.Size = UDim2.new(percentage, 0, 1, 0)
+	speedLabel.Text = "Velocidad: " .. math.floor(currentSpeed)
+end
+
+local updatingSpeed = false
+local function updateSpeedFromInput(inputObject)
+	local barPos = speedBar.AbsolutePosition
+	local barSize = speedBar.AbsoluteSize
+	local relativeX = math.clamp(inputObject.Position.X - barPos.X, 0, barSize.X)
+	local percentage = relativeX / barSize.X
+	currentSpeed = MIN_SPEED + (percentage * (MAX_SPEED - MIN_SPEED))
+	updateSpeedUI()
+end
+
+speedBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		updatingSpeed = true
+		updateSpeedFromInput(input)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if updatingSpeed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		updateSpeedFromInput(input)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		updatingSpeed = false
+	end
+end)
+
+local hideHudButton = Instance.new("TextButton")
+hideHudButton.Name = "HideHudButton"
+hideHudButton.Size = UDim2.new(0, 45, 0, 45)
+hideHudButton.Position = UDim2.new(1, -60, 0.85, 0)
+hideHudButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+hideHudButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+hideHudButton.TextSize = 20
+hideHudButton.Font = Enum.Font.GothamBold
+hideHudButton.Text = "👁️"
+hideHudButton.Visible = false
+hideHudButton.AutoButtonColor = false
+hideHudButton.Parent = screenGui
+
+local hideCorner = Instance.new("UICorner")
+hideCorner.CornerRadius = UDim.new(0, 8)
+hideCorner.Parent = hideHudButton
+
+local hideStroke = Instance.new("UIStroke")
+hideStroke.Color = Color3.fromRGB(70, 70, 85)
+hideStroke.Thickness = 1.5
+hideStroke.Parent = hideHudButton
+
+local lightButton = Instance.new("TextButton")
+lightButton.Name = "LightButton"
+lightButton.Size = UDim2.new(0, 45, 0, 45)
+lightButton.Position = UDim2.new(1, -115, 0.85, 0)
+lightButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+lightButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+lightButton.TextSize = 20
+lightButton.Font = Enum.Font.GothamBold
+lightButton.Text = "💡"
+lightButton.Visible = false
+lightButton.AutoButtonColor = false
+lightButton.Parent = screenGui
+
+local lightCorner = Instance.new("UICorner")
+lightCorner.CornerRadius = UDim.new(0, 8)
+lightCorner.Parent = lightButton
+
+local lightStroke = Instance.new("UIStroke")
+lightStroke.Color = Color3.fromRGB(0, 255, 180)
+lightStroke.Thickness = 1.5
+lightStroke.Parent = lightButton
+
+local nightVisionButton = Instance.new("TextButton")
+nightVisionButton.Name = "NightVisionButton"
+nightVisionButton.Size = UDim2.new(0, 45, 0, 45)
+nightVisionButton.Position = UDim2.new(1, -170, 0.85, 0)
+nightVisionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+nightVisionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+nightVisionButton.TextSize = 20
+nightVisionButton.Font = Enum.Font.GothamBold
+nightVisionButton.Text = "🌙"
+nightVisionButton.Visible = false
+nightVisionButton.AutoButtonColor = false
+nightVisionButton.Parent = screenGui
+
+local nvCorner = Instance.new("UICorner")
+nvCorner.CornerRadius = UDim.new(0, 8)
+nvCorner.Parent = nightVisionButton
+
+local nvStroke = Instance.new("UIStroke")
+nvStroke.Color = Color3.fromRGB(70, 70, 85)
+nvStroke.Thickness = 1.5
+nvStroke.Parent = nightVisionButton
+
+local soundButton = Instance.new("TextButton")
+soundButton.Name = "SoundButton"
+soundButton.Size = UDim2.new(0, 45, 0, 45)
+soundButton.Position = UDim2.new(1, -225, 0.85, 0)
+soundButton.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+soundButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+soundButton.TextSize = 20
+soundButton.Font = Enum.Font.GothamBold
+soundButton.Text = "🔊"
+soundButton.Visible = false
+soundButton.AutoButtonColor = false
+soundButton.Parent = screenGui
+
+local soundCorner = Instance.new("UICorner")
+soundCorner.CornerRadius = UDim.new(0, 8)
+soundCorner.Parent = soundButton
+
+local soundStroke = Instance.new("UIStroke")
+soundStroke.Color = Color3.fromRGB(0, 255, 180)
+soundStroke.Thickness = 1.5
+soundStroke.Parent = soundButton
+
+local cinematicButton = Instance.new("TextButton")
+cinematicButton.Name = "CinematicButton"
+cinematicButton.Size = UDim2.new(0, 45, 0, 45)
+cinematicButton.Position = UDim2.new(1, -280, 0.85, 0)
+cinematicButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+cinematicButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+cinematicButton.TextSize = 20
+cinematicButton.Font = Enum.Font.GothamBold
+cinematicButton.Text = "🐢"
+cinematicButton.Visible = false
+cinematicButton.AutoButtonColor = false
+cinematicButton.Parent = screenGui
+
+local cineCorner = Instance.new("UICorner")
+cineCorner.CornerRadius = UDim.new(0, 8)
+cineCorner.Parent = cinematicButton
+
+local cineStroke = Instance.new("UIStroke")
+cineStroke.Color = Color3.fromRGB(70, 70, 85)
+cineStroke.Thickness = 1.5
+cineStroke.Parent = cinematicButton
+
+lightButton.MouseButton1Click:Connect(function()
+	isLightOn = not isLightOn
+	droneSpotLight.Enabled = isLightOn
+end)
+
+nightVisionButton.MouseButton1Click:Connect(function()
+	isNightVisionOn = not isNightVisionOn
+	nightVisionEffect.Enabled = isNightVisionOn
+end)
+
+soundButton.MouseButton1Click:Connect(function()
+	isSoundOn = not isSoundOn
+	if isFreeCamActive and isSoundOn then pcall(function() droneSound:Play() end) else pcall(function() droneSound:Stop() end) end
+end)
+
+cinematicButton.MouseButton1Click:Connect(function()
+	isCinematicModeOn = not isCinematicModeOn
+	if isCinematicModeOn then
+		savedSpeedBeforeCinematic = currentSpeed
+		currentSpeed = 8 
+		SENSITIVITY = 0.0015 
+	else
+		currentSpeed = savedSpeedBeforeCinematic
+		SENSITIVITY = 0.005 
+	end
+	updateSpeedUI()
+end)
+
+hideHudButton.MouseButton1Click:Connect(function()
+	isHudVisible = not isHudVisible
+	droneControlPanel.Visible = isHudVisible
+	toggleButton.Visible = isHudVisible
+	lightButton.Visible = isHudVisible
+	nightVisionButton.Visible = isHudVisible
+	soundButton.Visible = isHudVisible
+	cinematicButton.Visible = isHudVisible
+end)
+
+local function updateMovementInput()
+	local x, y, z = 0, 0, 0
+	if UserInputService:IsKeyDown(Enum.KeyCode.W) or movementStates.Forward then z = z - 1 end
+	if UserInputService:IsKeyDown(Enum.KeyCode.S) or movementStates.Backward then z = z + 1 end
+	if UserInputService:IsKeyDown(Enum.KeyCode.A) or movementStates.Left then x = x - 1 end
+	if UserInputService:IsKeyDown(Enum.KeyCode.D) or movementStates.Right then x = x + 1 end
+	if UserInputService:IsKeyDown(Enum.KeyCode.Space) or movementStates.Up then y = y + 1 end
+	if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or movementStates.Down then y = y - 1 end
+	return Vector3.new(x, y, z)
+end
+
+local function toggleFreeCam()
+	isFreeCamActive = not isFreeCamActive
+	if isFreeCamActive then
+		originalCameraType = camera.CameraType
+		camera.CameraType = Enum.CameraType.Scriptable
+		camPosition = camera.CFrame.Position
+		local lookVector = camera.CFrame.LookVector
+		camRotation = Vector2.new(math.atan2(-lookVector.X, -lookVector.Z), math.asin(lookVector.Y))
+		droneSpotLight.Enabled = isLightOn
+		if isSoundOn then pcall(function() droneSound:Play() end) end
+		toggleButton.Text = "Cámara Dron: ON"
+		droneControlPanel.Visible = true
+		hideHudButton.Visible = true
+		lightButton.Visible = true
+		nightVisionButton.Visible = true
+		soundButton.Visible = true
+		cinematicButton.Visible = true
+	else
+		camera.CameraType = originalCameraType
+		droneSpotLight.Enabled = false
+		pcall(function() droneSound:Stop() end)
+		nightVisionEffect.Enabled = false
+		toggleButton.Text = "Cámara Dron: OFF"
+		droneControlPanel.Visible = false
+		hideHudButton.Visible = false
+		lightButton.Visible = false
+		nightVisionButton.Visible = false
+		soundButton.Visible = false
+		cinematicButton.Visible = false
+		toggleButton.Visible = false
+	end
+end
+
+utilitiesTab:CreateToggle({
+    Name = "Activar Cámara Libre (Dron)",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value ~= isFreeCamActive then
+            toggleFreeCam()
+        end
+    end,
+})
+
+runService.RenderStepped:Connect(function(dt)
+	if not isFreeCamActive then return end
+	local moveInput = updateMovementInput()
+	local yawCF = CFrame.Angles(0, camRotation.X, 0)
+	local pitchCF = CFrame.Angles(camRotation.Y, 0, 0)
+	local rotationCF = yawCF * pitchCF
+	local moveDir = rotationCF:VectorToWorldSpace(moveInput)
+	camPosition = camPosition + (moveDir * currentSpeed * dt)
+	camera.CFrame = CFrame.new(camPosition) * rotationCF
+	droneLightPart.CFrame = camera.CFrame
+end)
+
+-- anti afk
+task.spawn(function()
+    while task.wait(100) do
+        vim:SendKeyEvent(true, Enum.KeyCode.Tilde, false, nil)
+        task.wait(0.1)
+        vim:SendKeyEvent(false, Enum.KeyCode.Tilde, false, nil)
+    end
+end)
+
+Rayfield:LoadConfiguration()
