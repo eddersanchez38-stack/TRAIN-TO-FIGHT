@@ -1,0 +1,458 @@
+-- [[ ⚡ E&T UI - VERSIÓN FINAL CON FONDO TRANSPARENTE ]] --
+
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Limpiar interfaz anterior si existe
+if CoreGui:FindFirstChild("ET_UI_Hub") then
+    CoreGui.ET_UI_Hub:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ET_UI_Hub"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- ==========================================
+-- 1. SISTEMA DE NOTIFICACIONES (ESTILO RAYFIELD)
+-- ==========================================
+local NotifyHolder = Instance.new("Folder")
+NotifyHolder.Name = "NotifyHolder"
+NotifyHolder.Parent = ScreenGui
+
+local function SendNotification(title, content, duration)
+    duration = duration or 3
+    
+    local NotifyFrame = Instance.new("Frame")
+    NotifyFrame.Parent = NotifyHolder
+    NotifyFrame.BackgroundColor3 = Color3.fromRGB(22, 12, 35)
+    NotifyFrame.BackgroundTransparency = 0.15
+    NotifyFrame.Position = UDim2.new(1, 20, 1, -100 - (#NotifyHolder:GetChildren() * 75))
+    NotifyFrame.Size = UDim2.new(0, 280, 0, 65)
+    
+    local NotifyCorner = Instance.new("UICorner")
+    NotifyCorner.CornerRadius = UDim.new(0, 10)
+    NotifyCorner.Parent = NotifyFrame
+    
+    local NotifyStroke = Instance.new("UIStroke")
+    NotifyStroke.Color = Color3.fromRGB(120, 40, 180)
+    NotifyStroke.Thickness = 1.5
+    NotifyStroke.Parent = NotifyFrame
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = NotifyFrame
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Position = UDim2.new(0, 12, 0, 8)
+    TitleLabel.Size = UDim2.new(1, -20, 0, 20)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = "⚡ " .. title
+    TitleLabel.TextColor3 = Color3.fromRGB(240, 210, 255)
+    TitleLabel.TextSize = 13
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local DescLabel = Instance.new("TextLabel")
+    DescLabel.Parent = NotifyFrame
+    DescLabel.BackgroundTransparency = 1
+    DescLabel.Position = UDim2.new(0, 12, 0, 28)
+    DescLabel.Size = UDim2.new(1, -20, 0, 30)
+    DescLabel.Font = Enum.Font.Gotham
+    DescLabel.Text = content
+    DescLabel.TextColor3 = Color3.fromRGB(180, 150, 210)
+    DescLabel.TextSize = 11
+    DescLabel.TextWrapped = true
+    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    TweenService:Create(NotifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -295, 1, NotifyFrame.Position.Y.Offset)
+    }):Play()
+
+    task.delay(duration, function()
+        local outTween = TweenService:Create(NotifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, 20, 1, NotifyFrame.Position.Y.Offset)
+        })
+        outTween:Play()
+        outTween.Completed:Wait()
+        NotifyFrame:Destroy()
+    end)
+end
+
+-- ==========================================
+-- 2. PANTALLA DE CARGA (SPLASH SCREEN ANIMADA)
+-- ==========================================
+local SplashFrame = Instance.new("Frame")
+SplashFrame.Name = "SplashFrame"
+SplashFrame.Parent = ScreenGui
+SplashFrame.BackgroundColor3 = Color3.fromRGB(15, 8, 25)
+SplashFrame.BackgroundTransparency = 0.1
+SplashFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+SplashFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+SplashFrame.Size = UDim2.new(0, 0, 0, 0)
+SplashFrame.ClipsDescendants = true
+
+local SplashCorner = Instance.new("UICorner")
+SplashCorner.CornerRadius = UDim.new(0, 14)
+SplashCorner.Parent = SplashFrame
+
+local SplashStroke = Instance.new("UIStroke")
+SplashStroke.Color = Color3.fromRGB(140, 50, 220)
+SplashStroke.Thickness = 2
+SplashStroke.Parent = SplashFrame
+
+local SplashTitle = Instance.new("TextLabel")
+SplashTitle.Parent = SplashFrame
+SplashTitle.BackgroundTransparency = 1
+SplashTitle.Position = UDim2.new(0, 0, 0.3, 0)
+SplashTitle.Size = UDim2.new(1, 0, 0, 40)
+SplashTitle.Font = Enum.Font.GothamBold
+SplashTitle.Text = "⚡ E&T SCRIPTS"
+SplashTitle.TextColor3 = Color3.fromRGB(240, 210, 255)
+SplashTitle.TextSize = 22
+SplashTitle.TextTransparency = 1
+SplashTitle.TextXAlignment = Enum.TextXAlignment.Center
+
+local SplashSub = Instance.new("TextLabel")
+SplashSub.Parent = SplashFrame
+SplashSub.BackgroundTransparency = 1
+SplashSub.Position = UDim2.new(0, 0, 0.55, 0)
+SplashSub.Size = UDim2.new(1, 0, 0, 30)
+SplashSub.Font = Enum.Font.Gotham
+SplashSub.Text = "by EDER2302 & TOCINACIO23021"
+SplashSub.TextColor3 = Color3.fromRGB(180, 150, 210)
+SplashSub.TextSize = 14
+SplashSub.TextTransparency = 1
+SplashSub.TextXAlignment = Enum.TextXAlignment.Center
+
+-- ==========================================
+-- 3. VENTANA PRINCIPAL (CON FONDO TRANSPARENTE)
+-- ==========================================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 10, 28)
+MainFrame.BackgroundTransparency = 0.15 -- Menú principal traslúcido
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 520, 0, 360)
+MainFrame.Visible = false
+MainFrame.ClipsDescendants = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(110, 35, 175)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- Barra Superior
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(28, 15, 45)
+TopBar.BackgroundTransparency = 0.1
+TopBar.Size = UDim2.new(1, 0, 0, 42)
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 12)
+TopCorner.Parent = TopBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TopBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "⚡ E&T SCRIPTS | EDER2302 & TOCINACIO23021"
+TitleLabel.TextColor3 = Color3.fromRGB(230, 200, 255)
+TitleLabel.TextSize = 12
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Acciones Superiores (Minimizar y Cerrar)
+local WindowActions = Instance.new("Frame")
+WindowActions.Parent = TopBar
+WindowActions.BackgroundTransparency = 1
+WindowActions.Position = UDim2.new(1, -75, 0.5, -12)
+WindowActions.Size = UDim2.new(0, 65, 0, 24)
+
+local ActionLayout = Instance.new("UIListLayout")
+ActionLayout.Parent = WindowActions
+ActionLayout.FillDirection = Enum.FillDirection.Horizontal
+ActionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+ActionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ActionLayout.Padding = UDim.new(0, 6)
+
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Parent = WindowActions
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 30, 90)
+MinimizeButton.Size = UDim2.new(0, 24, 0, 24)
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(220, 200, 255)
+MinimizeButton.TextSize = 16
+Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 6)
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = WindowActions
+CloseButton.BackgroundColor3 = Color3.fromRGB(150, 35, 35)
+CloseButton.Size = UDim2.new(0, 24, 0, 24)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 12
+Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 6)
+
+-- ==========================================
+-- 4. BARRA DE PESTAÑAS (TABS) SUPERIOR
+-- ==========================================
+local TabBar = Instance.new("Frame")
+TabBar.Parent = MainFrame
+TabBar.BackgroundTransparency = 1
+TabBar.Position = UDim2.new(0, 15, 0, 52)
+TabBar.Size = UDim2.new(1, -30, 0, 38)
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.Parent = TabBar
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabLayout.Padding = UDim.new(0, 8)
+
+local PagesContainer = Instance.new("Frame")
+PagesContainer.Parent = MainFrame
+PagesContainer.BackgroundTransparency = 1
+PagesContainer.Position = UDim2.new(0, 15, 0, 100)
+PagesContainer.Size = UDim2.new(1, -30, 1, -110)
+
+-- ==========================================
+-- 5. BOTÓN FLOTANTE "Show ⚡E&T" (TRANSPARENTE ARRIBA)
+-- ==========================================
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 15, 48)
+ToggleButton.BackgroundTransparency = 0.2 -- Botón superior semitransparente
+ToggleButton.Position = UDim2.new(0.5, -60, 0, 4)
+ToggleButton.Size = UDim2.new(0, 120, 0, 28)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "Show ⚡E&T"
+ToggleButton.TextColor3 = Color3.fromRGB(230, 200, 255)
+ToggleButton.TextSize = 12
+ToggleButton.Visible = false
+
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 14)
+local ToggleStroke = Instance.new("UIStroke", ToggleButton)
+ToggleStroke.Color = Color3.fromRGB(140, 60, 210)
+ToggleStroke.Thickness = 1.5
+
+-- ==========================================
+-- 6. SISTEMA DE TABS Y ELEMENTOS
+-- ==========================================
+local Tabs = {}
+
+local function CreateTab(tabName)
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Parent = TabBar
+    TabBtn.BackgroundColor3 = Color3.fromRGB(28, 14, 42)
+    TabBtn.BackgroundTransparency = 0.2
+    TabBtn.Size = UDim2.new(0, 110, 0, 32)
+    TabBtn.Font = Enum.Font.GothamSemibold
+    TabBtn.Text = tabName
+    TabBtn.TextColor3 = Color3.fromRGB(180, 150, 210)
+    TabBtn.TextSize = 13
+    Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 8)
+    
+    local TabPage = Instance.new("ScrollingFrame")
+    TabPage.Parent = PagesContainer
+    TabPage.BackgroundTransparency = 1
+    TabPage.Size = UDim2.new(1, 0, 1, 0)
+    TabPage.CanvasSize = UDim2.new(0, 0, 0, 300)
+    TabPage.ScrollBarThickness = 3
+    TabPage.ScrollBarImageColor3 = Color3.fromRGB(120, 50, 190)
+    TabPage.Visible = false
+
+    local PageLayout = Instance.new("UIListLayout")
+    PageLayout.Parent = TabPage
+    PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    PageLayout.Padding = UDim.new(0, 10)
+
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, t in pairs(Tabs) do
+            t.Page.Visible = false
+            TweenService:Create(t.Btn, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(28, 14, 42),
+                TextColor3 = Color3.fromRGB(180, 150, 210)
+            }):Play()
+        end
+        TabPage.Visible = true
+        TweenService:Create(TabBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(70, 25, 110),
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+    end)
+
+    table.insert(Tabs, {Btn = TabBtn, Page = TabPage})
+    if #Tabs == 1 then
+        TabPage.Visible = true
+        TabBtn.BackgroundColor3 = Color3.fromRGB(70, 25, 110)
+        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+
+    return TabPage
+end
+
+local function AddParagraph(tab, title, content)
+    local container = Instance.new("Frame")
+    container.Parent = tab
+    container.BackgroundColor3 = Color3.fromRGB(26, 13, 40)
+    container.BackgroundTransparency = 0.2
+    container.Size = UDim2.new(1, 0, 0, 65)
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 8)
+    
+    local stroke = Instance.new("UIStroke", container)
+    stroke.Color = Color3.fromRGB(65, 25, 105)
+    stroke.Thickness = 1
+
+    local tLbl = Instance.new("TextLabel")
+    tLbl.Parent = container
+    tLbl.BackgroundTransparency = 1
+    tLbl.Position = UDim2.new(0, 12, 0, 8)
+    tLbl.Size = UDim2.new(1, -20, 0, 20)
+    tLbl.Font = Enum.Font.GothamBold
+    tLbl.Text = title
+    tLbl.TextColor3 = Color3.fromRGB(240, 210, 255)
+    tLbl.TextSize = 13
+    tLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local cLbl = Instance.new("TextLabel")
+    cLbl.Parent = container
+    cLbl.BackgroundTransparency = 1
+    cLbl.Position = UDim2.new(0, 12, 0, 28)
+    cLbl.Size = UDim2.new(1, -20, 0, 30)
+    cLbl.Font = Enum.Font.Gotham
+    cLbl.Text = content
+    cLbl.TextColor3 = Color3.fromRGB(180, 150, 210)
+    cLbl.TextSize = 11
+    cLbl.TextWrapped = true
+    cLbl.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+local function AddButton(tab, name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Parent = tab
+    btn.BackgroundColor3 = Color3.fromRGB(30, 16, 48)
+    btn.BackgroundTransparency = 0.2
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = "   " .. name
+    btn.TextColor3 = Color3.fromRGB(240, 220, 255)
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Color = Color3.fromRGB(75, 30, 120)
+    stroke.Thickness = 1
+    
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- ==========================================
+-- 7. CONTENIDO DE LAS PESTAÑAS (TABS)
+-- ==========================================
+local TabInicio = CreateTab("🏠 Inicio")
+AddParagraph(TabInicio, "Información", "Bienvenido al script oficial de E&T SCRIPTS. Disfruta de las funciones exclusivas.")
+AddButton(TabInicio, "🚀 Activar Velocidad (WalkSpeed 100)", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 100
+        SendNotification("Velocidad Activada", "WalkSpeed establecido a 100 con éxito.")
+    end
+end)
+AddButton(TabInicio, "🛡️ Restablecer Velocidad (WalkSpeed 16)", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+        SendNotification("Velocidad Restablecida", "WalkSpeed vuelto a la normalidad.")
+    end
+end)
+
+local TabCreditos = CreateTab("⚙️ Créditos")
+AddParagraph(TabCreditos, "Desarrolladores", "Creadores:\n• EDER2302\n• TOCINACIO23021\n\n¡Gracias por usar E&T SCRIPTS!")
+
+-- ==========================================
+-- 8. SISTEMA DE ARRASTRE (DRAG)
+-- ==========================================
+local dragging, dragInput, dragStart, startPos
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- ==========================================
+-- 9. CONTROLES DE VENTANA
+-- ==========================================
+local minimized = false
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    PagesContainer.Visible = not minimized
+    TabBar.Visible = not minimized
+    TweenService:Create(MainFrame, TweenInfo.new(0.2), {
+        Size = minimized and UDim2.new(0, 520, 0, 42) or UDim2.new(0, 520, 0, 360)
+    }):Play()
+    MinimizeButton.Text = minimized and "+" or "-"
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    ToggleButton.Visible = true
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    ToggleButton.Visible = false
+end)
+
+-- ==========================================
+-- 10. EJECUTAR ANIMACIÓN DE INICIO (SPLASH)
+-- ==========================================
+task.spawn(function()
+    local expandTween = TweenService:Create(SplashFrame, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 360, 0, 150)
+    })
+    expandTween:Play()
+    expandTween.Completed:Wait()
+
+    TweenService:Create(SplashTitle, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    TweenService:Create(SplashSub, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+
+    task.wait(1.5)
+
+    TweenService:Create(SplashFrame, TweenInfo.new(0.4), {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}):Play()
+    TweenService:Create(SplashTitle, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    TweenService:Create(SplashSub, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    task.wait(0.4)
+    SplashFrame:Destroy()
+
+    -- Mostrar la interfaz con las pestañas y la notificación Rayfield
+    MainFrame.Visible = true
+    SendNotification("⚡ E&T UI Cargado", "¡Interfaz iniciada correctamente!")
+end)
