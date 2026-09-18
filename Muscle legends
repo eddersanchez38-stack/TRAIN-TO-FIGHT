@@ -1,0 +1,720 @@
+-- ⚡ E&T Scripts | EDER2302 & TOCINACIO23021
+-- Muscle Legends (STATS, Spy y Auto Hatch Reparado)
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local pg = player:WaitForChild("PlayerGui")
+local ls = player:WaitForChild("leaderstats", 10)
+
+local rEvents = RS:FindFirstChild("rEvents")
+local openCrystalRemote = rEvents and rEvents:FindFirstChild("openCrystalRemote")
+local autoEvolveRemote = rEvents and rEvents:FindFirstChild("autoEvolveRemote")
+
+-- Variables de Estado
+local cristalSeleccionado = nil
+local abriendo = false
+local autoEvolve = false
+local antiAfk = true
+local tiempoAntiAfk = 0
+local tiempoTotal = 0
+local mostrarTiempo = true
+local autoHatchVisible = false
+local jugadorSeleccionado = nil
+local jugadoresTiempoIngreso = {}
+local lockPositivo = false
+local lockedCFrame = nil
+local autoFastReps = false
+local autoPushups = false
+local autoPunch = false
+
+-- Variables de Ayuda al Jugador
+local customWalkSpeed = 16
+local customJumpPower = 50
+local walkSpeedEnabled = false
+local jumpPowerEnabled = false
+local infiniteJumpEnabled = false
+
+-- Lista exacta de cristales
+local cristales = {
+	"Industrial Crystal",
+	"Jungle Crystal",
+	"Muscle Elite Crystal",
+	"Oracle Crystal",
+	"Inferno Crystal",
+	"Mythical Crystal",
+	"Frost Crystal",
+	"Green Crystal",
+	"Blue Crystal"
+}
+cristalSeleccionado = cristales[1]
+
+-- Lista de teleports
+local teleports = {
+	{Name = "🏝️ Small Island", CFrame = CFrame.new(-38.31, 2.46, 1885.32)},
+	{Name = "❄️ Frost Gym", CFrame = CFrame.new(-2653.78, 5.06, -417.13)},
+	{Name = "⚡ Mitico Gym", CFrame = CFrame.new(2250.78, 5.06, 1073.23)},
+	{Name = "🔥 Hell Gym", CFrame = CFrame.new(-6758.96, 5.06, -1284.92)},
+	{Name = "☁️ Sky Gym", CFrame = CFrame.new(4603.28, 989.21, -3897.87)},
+	{Name = "👑 Muscle Kings Gym", CFrame = CFrame.new(-8625.93, 14.91, -5730.47)},
+	{Name = "🏭 Industrial Gym", CFrame = CFrame.new(-5548.66, 55.87, 4932.00)},
+}
+
+-- Función robusta para obtener los valores exactos según su ruta
+local function obtenerValorStat(plr, clave)
+	if not plr then return 0 end
+	local valObj = nil
+	local leaderstats = plr:FindFirstChild("leaderstats")
+	
+	if leaderstats then
+		valObj = leaderstats:FindFirstChild(clave)
+	end
+	
+	if not valObj then
+		valObj = plr:FindFirstChild(clave)
+	end
+	
+	if valObj and (valObj:IsA("NumberValue") or valObj:IsA("IntValue")) then
+		return valObj.Value
+	end
+	return 0
+end
+
+-- Valores iniciales del jugador local con todas las rutas exactas
+local inicio = {
+	Strength = obtenerValorStat(player, "Strength"),
+	Rebirths = obtenerValorStat(player, "Rebirths"),
+	Kills = obtenerValorStat(player, "Kills"),
+	Brawls = obtenerValorStat(player, "Brawls"),
+	Agility = obtenerValorStat(player, "Agility"),
+	Durability = obtenerValorStat(player, "Durability"),
+	Gems = obtenerValorStat(player, "Gems"),
+	goodKarma = obtenerValorStat(player, "goodKarma"),
+	evilKarma = obtenerValorStat(player, "evilKarma"),
+}
+
+local function formato(n)
+	n = tonumber(n) or 0
+	if n >= 1e18 then return string.format("%.1fOc", n/1e18)
+	elseif n >= 1e15 then return string.format("%.1fSx", n/1e15)
+	elseif n >= 1e12 then return string.format("%.1fT", n/1e12)
+	elseif n >= 1e9 then return string.format("%.1fB", n/1e9)
+	elseif n >= 1e6 then return string.format("%.1fM", n/1e6)
+	elseif n >= 1e3 then return string.format("%.1fK", n/1e3)
+	end return string.format("%.1f", n)
+end
+
+local function calcularGananciaPorTiempo(ganado, seg)
+	if seg <= 0 then return "⏳ Calculando ganancias..." end
+	local porMin = ganado / (seg / 60)
+	local porHora = porMin * 60
+	local porDia = porHora * 24
+	local porSem = porDia * 7
+	local porMes = porDia * 30
+	return string.format("📈 /m: %s | ⚡ /h: %s\n🌟 /d: %s | 🚀 /sem: %s",
+		formato(porMin), formato(porHora), formato(porDia), formato(porSem))
+end
+
+local function fmtTiempo(seg)
+	local h = math.floor(seg/3600)
+	local m = math.floor((seg%3600)/60)
+	local s = math.floor(seg%60)
+	return string.format("%02d:%02d:%02d", h, m, s)
+end
+
+local function equiparTool(nombre)
+	pcall(function()
+		local char = player.Character
+		if not char then return end
+		local tool = player.Backpack:FindFirstChild(nombre)
+		if tool then tool.Parent = char end
+	end)
+end
+
+local function mantenerTool(nombre)
+	pcall(function()
+		local char = player.Character
+		if not char then return end
+		if not char:FindFirstChild(nombre) then
+			local tool = player.Backpack:FindFirstChild(nombre)
+			if tool then tool.Parent = char end
+		end
+	end)
+end
+
+local function teleportTo(cf)
+	pcall(function()
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = cf
+		end
+	end)
+end
+
+-- Limpieza de interfaces anteriores si existen
+if pg:FindFirstChild("ET_TextoGuiPro") then pg.ET_TextoGuiPro:Destroy() end
+if pg:FindFirstChild("ET_HatchBtnPro") then pg.ET_HatchBtnPro:Destroy() end
+if pg:FindFirstChild("ET_MultiTabHubNative") then pg.ET_MultiTabHubNative:Destroy() end
+
+-- ==================== INTERFACES FLOTANTES ====================
+local textoGui = Instance.new("ScreenGui")
+textoGui.Name = "ET_TextoGuiPro"
+textoGui.ResetOnSpawn = false
+textoGui.Parent = pg
+
+local antiAfkLabel = Instance.new("TextLabel")
+antiAfkLabel.Size = UDim2.new(0, 310, 0, 36)
+antiAfkLabel.Position = UDim2.new(0.5, -155, 0.035, 0)
+antiAfkLabel.BackgroundTransparency = 1
+antiAfkLabel.Text = "🛡️ ANTI-AFK: 00:00:00"
+antiAfkLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
+antiAfkLabel.TextSize = 22
+antiAfkLabel.Font = Enum.Font.GothamBold
+antiAfkLabel.TextStrokeTransparency = 0
+antiAfkLabel.Parent = textoGui
+
+local tiempoLabel = Instance.new("TextLabel")
+tiempoLabel.Size = UDim2.new(0, 310, 0, 34)
+tiempoLabel.Position = UDim2.new(0.5, -155, 0.08, 0)
+tiempoLabel.BackgroundTransparency = 1
+tiempoLabel.Text = "⏱️ TIEMPO JUGADO: 00:00:00"
+tiempoLabel.TextColor3 = Color3.fromRGB(255, 210, 50)
+tiempoLabel.TextSize = 18
+tiempoLabel.Font = Enum.Font.GothamBold
+tiempoLabel.TextStrokeTransparency = 0
+tiempoLabel.Parent = textoGui
+
+local clientLabel = Instance.new("TextLabel")
+clientLabel.Size = UDim2.new(0, 360, 0, 30)
+clientLabel.Position = UDim2.new(0.5, -180, 0.125, 0)
+clientLabel.BackgroundTransparency = 1
+clientLabel.Text = "⚡ E&T Scripts | EDER2302 & TOCINACIO23021 ⚡"
+clientLabel.TextColor3 = Color3.fromRGB(200, 150, 255)
+clientLabel.TextSize = 16
+clientLabel.Font = Enum.Font.GothamBold
+clientLabel.TextStrokeTransparency = 0
+clientLabel.Parent = textoGui
+
+local hatchGui = Instance.new("ScreenGui")
+hatchGui.Name = "ET_HatchBtnPro"
+hatchGui.ResetOnSpawn = false
+hatchGui.Enabled = false
+hatchGui.Parent = pg
+
+local hatchBtn = Instance.new("TextButton")
+hatchBtn.Size = UDim2.new(0, 160, 0, 60)
+hatchBtn.Position = UDim2.new(0.75, 0, 0.4, 0)
+hatchBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+hatchBtn.Text = "🥚 AUTO HATCH\n🔴 OFF"
+hatchBtn.TextColor3 = Color3.new(1,1,1)
+hatchBtn.TextSize = 15
+hatchBtn.Font = Enum.Font.GothamBold
+hatchBtn.AutoButtonColor = false
+hatchBtn.Active = true
+hatchBtn.Draggable = true
+hatchBtn.Parent = hatchGui
+Instance.new("UICorner", hatchBtn).CornerRadius = UDim.new(0, 14)
+local strokeHatch = Instance.new("UIStroke", hatchBtn)
+strokeHatch.Thickness = 3
+
+-- ==================== INTERFAZ NATIVA PRINCIPAL ====================
+local mainGui = Instance.new("ScreenGui")
+mainGui.Name = "ET_MultiTabHubNative"
+mainGui.ResetOnSpawn = false
+mainGui.Parent = pg
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 440, 0, 340)
+mainFrame.Position = UDim2.new(0.08, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = mainGui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+local mainStroke = Instance.new("UIStroke", mainFrame)
+mainStroke.Thickness = 2
+mainStroke.Color = Color3.fromRGB(120, 70, 255)
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 35)
+topBar.BackgroundColor3 = Color3.fromRGB(35, 30, 55)
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 12)
+
+local titleHub = Instance.new("TextLabel")
+titleHub.Size = UDim2.new(1, -75, 1, 0)
+titleHub.Position = UDim2.new(0, 12, 0, 0)
+titleHub.BackgroundTransparency = 1
+titleHub.Text = "⚡ E&T Scripts Hub | Muscle Legends"
+titleHub.TextColor3 = Color3.fromRGB(220, 180, 255)
+titleHub.TextSize = 13
+titleHub.Font = Enum.Font.GothamBold
+titleHub.Parent = topBar
+
+local exitBtn = Instance.new("TextButton")
+exitBtn.Size = UDim2.new(0, 28, 0, 28)
+exitBtn.Position = UDim2.new(1, -33, 0, 4)
+exitBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+exitBtn.Text = "X"
+exitBtn.TextColor3 = Color3.new(1,1,1)
+exitBtn.TextSize = 14
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.Parent = topBar
+Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 6)
+exitBtn.MouseButton1Click:Connect(function()
+	mainGui:Destroy(); textoGui:Destroy(); hatchGui:Destroy()
+end)
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+minimizeBtn.Position = UDim2.new(1, -66, 0, 4)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(90, 70, 140)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.new(1,1,1)
+minimizeBtn.TextSize = 16
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.Parent = topBar
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 6)
+
+local tabNav = Instance.new("ScrollingFrame")
+tabNav.Size = UDim2.new(1, 0, 0, 32)
+tabNav.Position = UDim2.new(0, 0, 0, 38)
+tabNav.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+tabNav.BorderSizePixel = 0
+tabNav.CanvasSize = UDim2.new(0, 650, 0, 0)
+tabNav.ScrollBarThickness = 0
+tabNav.Parent = mainFrame
+
+local tabNavLayout = Instance.new("UIListLayout", tabNav)
+tabNavLayout.FillDirection = Enum.FillDirection.Horizontal
+tabNavLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabNavLayout.Padding = UDim.new(0, 4)
+
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -10, 1, -80)
+contentFrame.Position = UDim2.new(0, 5, 0, 75)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+local tabs = {}
+local function crearTabContent(nombre)
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Size = UDim2.new(1, 0, 1, 0)
+	scroll.BackgroundTransparency = 1
+	scroll.CanvasSize = UDim2.new(0, 0, 0, 850)
+	scroll.ScrollBarThickness = 4
+	scroll.Visible = false
+	scroll.Parent = contentFrame
+
+	local layout = Instance.new("UIListLayout", scroll)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 6)
+
+	tabs[nombre] = scroll
+	return scroll
+end
+
+local function cambiarTab(nombre)
+	for _, tab in pairs(tabs) do tab.Visible = false end
+	if tabs[nombre] then tabs[nombre].Visible = true end
+end
+
+local function agregarBotonTab(nombre, textoBoton)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 75, 0, 28)
+	btn.BackgroundColor3 = Color3.fromRGB(45, 40, 70)
+	btn.Text = textoBoton
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextSize = 11
+	btn.Font = Enum.Font.GothamBold
+	btn.Parent = tabNav
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	btn.MouseButton1Click:Connect(function() cambiarTab(nombre) end)
+end
+
+local function crearSeccionTitulo(parent, texto)
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(1, -5, 0, 24)
+	lbl.BackgroundTransparency = 1
+	lbl.Text = "--- " .. texto .. " ---"
+	lbl.TextColor3 = Color3.fromRGB(180, 140, 255)
+	lbl.TextSize = 12
+	lbl.Font = Enum.Font.GothamBold
+	lbl.Parent = parent
+	return lbl
+end
+
+local function crearToggleEnTab(parent, texto, estadoInicial, callback)
+	local activo = estadoInicial
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -5, 0, 32)
+	btn.BackgroundColor3 = activo and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(45, 40, 70)
+	btn.Text = texto .. (activo and " [ON]" or " [OFF]")
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextSize = 11
+	btn.Font = Enum.Font.GothamBold
+	btn.Parent = parent
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	btn.MouseButton1Click:Connect(function()
+		activo = not activo
+		btn.BackgroundColor3 = activo and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(45, 40, 70)
+		btn.Text = texto .. (activo and " [ON]" or " [OFF]")
+		callback(activo)
+	end)
+	return btn
+end
+
+local function crearBotonEnTab(parent, texto, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -5, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(55, 45, 85)
+	btn.Text = texto
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextSize = 11
+	btn.Font = Enum.Font.GothamBold
+	btn.Parent = parent
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
+
+-- ==================== PESTAÑAS ====================
+
+-- Pestaña FARM
+agregarBotonTab("Farm", "🚀 Farm")
+local TabFarm = crearTabContent("Farm")
+crearSeccionTitulo(TabFarm, "🚀 Automatización General")
+crearToggleEnTab(TabFarm, "🛡️ Anti-AFK Inteligente", true, function(v) antiAfk = v; tiempoAntiAfk = 0 end)
+crearToggleEnTab(TabFarm, "👁️ Mostrar Tiempos en Pantalla", true, function(v) mostrarTiempo = v; tiempoLabel.Visible = v end)
+crearToggleEnTab(TabFarm, "✨ Auto Evolve Cristales", false, function(v) autoEvolve = v end)
+crearToggleEnTab(TabFarm, "🥚 Botón Flotante Auto Hatch", false, function(v) autoHatchVisible = v; hatchGui.Enabled = v; if not v then abriendo = false; hatchBtn.Text = "🥚 AUTO HATCH\n🔴 OFF" end end)
+crearToggleEnTab(TabFarm, "🔒 Lock Positivo (Fijar Posición)", false, function(v) lockPositivo = v; if v then local char = player.Character; if char and char:FindFirstChild("HumanoidRootPart") then lockedCFrame = char.HumanoidRootPart.CFrame else lockPositivo = false end else lockedCFrame = nil end end)
+
+crearSeccionTitulo(TabFarm, "💪 Herramientas Automáticas")
+crearToggleEnTab(TabFarm, "🏋️ Auto Fast Reps (Weight)", false, function(v) autoFastReps = v; if v then equiparTool("Weight") end end)
+crearToggleEnTab(TabFarm, "🤸 Auto Pushups", false, function(v) autoPushups = v; if v then equiparTool("Pushups") end end)
+crearToggleEnTab(TabFarm, "🥊 Auto Punch", false, function(v) autoPunch = v; if v then equiparTool("Punch") end end)
+
+
+-- Pestaña CRYSTALS
+agregarBotonTab("Crystals", "🔮 Cristales")
+local TabCrystals = crearTabContent("Crystals")
+crearSeccionTitulo(TabCrystals, "🔮 Selección de Cristales")
+
+local cristalInfoLabel = Instance.new("TextLabel")
+cristalInfoLabel.Size = UDim2.new(1, -5, 0, 30)
+cristalInfoLabel.BackgroundTransparency = 1
+cristalInfoLabel.Text = "💎 Cristal Seleccionado: " .. tostring(cristalSeleccionado)
+cristalInfoLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
+cristalInfoLabel.TextSize = 12
+cristalInfoLabel.Font = Enum.Font.GothamBold
+cristalInfoLabel.Parent = TabCrystals
+
+local botonCristalesUI = {}
+for _, cristName in ipairs(cristales) do
+	local btnC = Instance.new("TextButton")
+	btnC.Size = UDim2.new(1, -5, 0, 32)
+	btnC.BackgroundColor3 = (cristName == cristalSeleccionado) and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(55, 45, 85)
+	btnC.Text = "💎 " .. cristName
+	btnC.TextColor3 = Color3.new(1,1,1)
+	btnC.TextSize = 11
+	btnC.Font = Enum.Font.GothamBold
+	btnC.Parent = TabCrystals
+	Instance.new("UICorner", btnC).CornerRadius = UDim.new(0, 6)
+	botonCristalesUI[cristName] = btnC
+
+	btnC.MouseButton1Click:Connect(function()
+		cristalSeleccionado = cristName
+		cristalInfoLabel.Text = "💎 Cristal Seleccionado: " .. cristName
+		for name, bObj in pairs(botonCristalesUI) do
+			bObj.BackgroundColor3 = (name == cristalSeleccionado) and Color3.fromRGB(40, 140, 60) or Color3.fromRGB(55, 45, 85)
+		end
+	end)
+end
+crearToggleEnTab(TabCrystals, "⚡ Auto Open Crystal (Menú)", false, function(v) abriendo = v end)
+
+
+-- Pestaña PLAYER
+agregarBotonTab("Player", "🏃 Player")
+local TabPlayer = crearTabContent("Player")
+crearSeccionTitulo(TabPlayer, "🏃 Modificaciones del Jugador")
+crearToggleEnTab(TabPlayer, "⚡ Activar WalkSpeed Personalizado", false, function(v) walkSpeedEnabled = v end)
+crearBotonEnTab(TabPlayer, "🏃 Fijar WalkSpeed a 100", function() walkSpeedEnabled = true; customWalkSpeed = 100 end)
+crearBotonEnTab(TabPlayer, "🏃 Fijar WalkSpeed a 300", function() walkSpeedEnabled = true; customWalkSpeed = 300 end)
+crearToggleEnTab(TabPlayer, "🦘 Activar JumpPower Personalizado", false, function(v) jumpPowerEnabled = v end)
+crearBotonEnTab(TabPlayer, "🦘 Fijar JumpPower a 150", function() jumpPowerEnabled = true; customJumpPower = 150 end)
+crearBotonEnTab(TabPlayer, "🦘 Fijar JumpPower a 350", function() jumpPowerEnabled = true; customJumpPower = 350 end)
+crearToggleEnTab(TabPlayer, "🔄 Infinite Jump", false, function(v) infiniteJumpEnabled = v end)
+
+
+-- Pestaña TELEPORT
+agregarBotonTab("Teleport", "🌌 Teleports")
+local TabTeleport = crearTabContent("Teleport")
+crearSeccionTitulo(TabTeleport, "🌌 Gimnasios e Islas")
+for _, loc in ipairs(teleports) do
+	crearBotonEnTab(TabTeleport, loc.Name, function() teleportTo(loc.CFrame) end)
+end
+
+
+-- Pestaña STATS
+agregarBotonTab("Stats", "📊 Stats")
+local TabStats = crearTabContent("Stats")
+crearSeccionTitulo(TabStats, "📊 Tus Estadísticas Totales en Vivo")
+
+local statLabels = {}
+local statNamesInfo = {
+	{"💪 Strength", "Strength"},
+	{"❤️ Durability", "Durability"},
+	{"🔄 Rebirths", "Rebirths"},
+	{"🏃 Agility", "Agility"},
+	{"⚔️ Kills", "Kills"},
+	{"🏆 Brawls", "Brawls"},
+	{"💎 Gems", "Gems"},
+	{"☠️ Evil Karma", "evilKarma"},
+	{"☯️ Good Karma", "goodKarma"}
+}
+
+for _, info in ipairs(statNamesInfo) do
+	local nombre, clave = unpack(info)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -5, 0, 48)
+	label.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+	label.Text = nombre .. ": Cargando..."
+	label.TextColor3 = Color3.fromRGB(220, 220, 255)
+	label.TextSize = 11
+	label.Font = Enum.Font.Gotham
+	label.Parent = TabStats
+	Instance.new("UICorner", label).CornerRadius = UDim.new(0, 6)
+	statLabels[clave] = {Label = label, Clave = clave, Nombre = nombre}
+end
+
+
+-- Pestaña SPY STATS
+agregarBotonTab("Spy", "🕵️ Spy")
+local TabSpy = crearTabContent("Spy")
+crearSeccionTitulo(TabSpy, "🕵️ Inspeccionar Jugadores del Servidor")
+
+local spyPlayerLabel = Instance.new("TextLabel")
+spyPlayerLabel.Size = UDim2.new(1, -5, 0, 35)
+spyPlayerLabel.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+spyPlayerLabel.Text = "🎯 Jugador Seleccionado: Ninguno"
+spyPlayerLabel.TextColor3 = Color3.fromRGB(255, 210, 100)
+spyPlayerLabel.TextSize = 11
+spyPlayerLabel.Font = Enum.Font.GothamBold
+spyPlayerLabel.Parent = TabSpy
+Instance.new("UICorner", spyPlayerLabel).CornerRadius = UDim.new(0, 6)
+
+local function actualizarBotonesSpy()
+	for _, child in ipairs(TabSpy:GetChildren()) do
+		if child.Name == "PlayerBtnSpy" then child:Destroy() end
+	end
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= player then
+			local btn = Instance.new("TextButton")
+			btn.Name = "PlayerBtnSpy"
+			btn.Size = UDim2.new(1, -5, 0, 28)
+			btn.BackgroundColor3 = Color3.fromRGB(50, 40, 75)
+			btn.Text = "👤 Espiar a: " .. p.Name
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.TextSize = 11
+			btn.Font = Enum.Font.Gotham
+			btn.Parent = TabSpy
+			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+			
+			btn.MouseButton1Click:Connect(function()
+				jugadorSeleccionado = p
+				spyPlayerLabel.Text = "🎯 Espiando a: " .. p.Name
+				jugadoresTiempoIngreso[p.UserId] = {
+					tiempo = tiempoTotal,
+					valoresIniciales = {
+						Strength = obtenerValorStat(p, "Strength"),
+						Durability = obtenerValorStat(p, "Durability"),
+						Rebirths = obtenerValorStat(p, "Rebirths"),
+						Agility = obtenerValorStat(p, "Agility"),
+						Kills = obtenerValorStat(p, "Kills"),
+						Brawls = obtenerValorStat(p, "Brawls"),
+						Gems = obtenerValorStat(p, "Gems"),
+						evilKarma = obtenerValorStat(p, "evilKarma"),
+						goodKarma = obtenerValorStat(p, "goodKarma"),
+					}
+				}
+			end)
+		end
+	end
+end
+actualizarBotonesSpy()
+Players.PlayerAdded:Connect(actualizarBotonesSpy)
+Players.PlayerRemoving:Connect(function(p)
+	if jugadorSeleccionado == p then
+		jugadorSeleccionado = nil
+		spyPlayerLabel.Text = "🎯 Jugador Seleccionado: El jugador abandonó"
+	end
+	actualizarBotonesSpy()
+end)
+
+crearSeccionTitulo(TabSpy, "📈 Estadísticas Ganadas del Jugador Seleccionado")
+local spyStatLabels = {}
+for _, info in ipairs(statNamesInfo) do
+	local nombre, clave = unpack(info)
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(1, -5, 0, 48)
+	lbl.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+	lbl.Text = nombre .. ": ---"
+	lbl.TextColor3 = Color3.fromRGB(220, 220, 255)
+	lbl.TextSize = 11
+	lbl.Font = Enum.Font.Gotham
+	lbl.Parent = TabSpy
+	Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 6)
+	spyStatLabels[clave] = {Label = lbl, Nombre = nombre, Clave = clave}
+end
+
+
+-- Pestaña CONFIG
+agregarBotonTab("Config", "⚙️ Config")
+local TabConfig = crearTabContent("Config")
+crearSeccionTitulo(TabConfig, "💬 Enlaces y Comunidad")
+crearBotonEnTab(TabConfig, "📱 Copiar Enlace de WhatsApp Oficial", function()
+	if setclipboard then setclipboard("https://chat.whatsapp.com/DTMm7Eq4rWvEvMffpVEN7Z?s=cl&p=a&mlu=4") end
+end)
+
+crearSeccionTitulo(TabConfig, "⭐ Créditos Oficiales")
+local creditosLabel = Instance.new("TextLabel")
+creditosLabel.Size = UDim2.new(1, -5, 0, 80)
+creditosLabel.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+creditosLabel.Text = "⚡ E&T SCRIPTS HUB ⚡\nCreadores Oficiales:\n👑 • TOCINACIO23021\n🔥 • EDER2302"
+creditosLabel.TextColor3 = Color3.fromRGB(200, 160, 255)
+creditosLabel.TextSize = 12
+creditosLabel.Font = Enum.Font.GothamBold
+creditosLabel.Parent = TabConfig
+Instance.new("UICorner", creditosLabel).CornerRadius = UDim.new(0, 6)
+
+cambiarTab("Farm")
+
+-- Minimizar
+local minimizado = false
+minimizeBtn.MouseButton1Click:Connect(function()
+	minimizado = not minimizado
+	contentFrame.Visible = not minimizado
+	tabNav.Visible = not minimizado
+	mainFrame.Size = minimizado and UDim2.new(0, 440, 0, 35) or UDim2.new(0, 440, 0, 340)
+	minimizeBtn.Text = minimizado and "+" or "-"
+end)
+
+hatchBtn.MouseButton1Click:Connect(function()
+	abriendo = not abriendo
+	hatchBtn.Text = abriendo and "🥚 AUTO HATCH\n🟢 ON" or "🥚 AUTO HATCH\n🔴 OFF"
+end)
+
+UIS.JumpRequest:Connect(function()
+	if infiniteJumpEnabled then
+		pcall(function()
+			local char = player.Character
+			if char and char:FindFirstChild("Humanoid") then
+				char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end)
+	end
+end)
+
+-- Loop principal
+local colorFase = 0
+task.spawn(function()
+	while task.wait(0.1) do
+		tiempoTotal = tiempoTotal + 0.1
+
+		colorFase = colorFase + 0.09
+		local r = math.floor(math.sin(colorFase) * 127 + 128)
+		local g = math.floor(math.sin(colorFase + 2) * 127 + 128)
+		local b = math.floor(math.sin(colorFase + 4) * 127 + 128)
+		strokeHatch.Color = Color3.fromRGB(r, g, b)
+
+		pcall(function()
+			local char = player.Character
+			if char and char:FindFirstChild("Humanoid") then
+				local hum = char.Humanoid
+				if walkSpeedEnabled then hum.WalkSpeed = customWalkSpeed end
+				if jumpPowerEnabled then hum.UseJumpPower = true; hum.JumpPower = customJumpPower end
+			end
+		end)
+
+		if antiAfk then
+			tiempoAntiAfk = tiempoAntiAfk + 0.1
+			if math.floor(tiempoAntiAfk) % 50 == 0 then
+				pcall(function()
+					local cam = workspace.CurrentCamera
+					cam.CFrame = cam.CFrame * CFrame.Angles(math.rad(0.5), 0, 0)
+					task.wait(0.08)
+					cam.CFrame = cam.CFrame * CFrame.Angles(math.rad(-0.5), 0, 0)
+				end)
+			end
+		end
+
+		antiAfkLabel.Text = "🛡️ ANTI-AFK: " .. fmtTiempo(tiempoAntiAfk)
+		tiempoLabel.Text = "⏱️ TIEMPO JUGADO: " .. fmtTiempo(tiempoTotal)
+
+		-- Actualizar Tus Stats
+		for clave, datos in pairs(statLabels) do
+			pcall(function()
+				local valorActual = obtenerValorStat(player, clave)
+				local ganado = valorActual - (inicio[clave] or 0)
+				local ganancia = calcularGananciaPorTiempo(ganado, tiempoTotal)
+				datos.Label.Text = string.format("%s: Actual: %s (+%s)\n%s", datos.Nombre, formato(valorActual), formato(ganado), ganancia)
+			end)
+		end
+
+		-- Actualizar Spy Stats
+		if jugadorSeleccionado and jugadorSeleccionado.Parent then
+			local datosUsuario = jugadoresTiempoIngreso[jugadorSeleccionado.UserId]
+			local tiempoEnServidor = datosUsuario and (tiempoTotal - datosUsuario.tiempo) or 1
+
+			for clave, datos in pairs(spyStatLabels) do
+				pcall(function()
+					local valorActual = obtenerValorStat(jugadorSeleccionado, clave)
+					local valorInicial = (datosUsuario and datosUsuario.valoresIniciales[clave]) or valorActual
+					local ganado = valorActual - valorInicial
+					local ganancia = calcularGananciaPorTiempo(ganado, tiempoEnServidor)
+					datos.Label.Text = string.format("%s: Actual: %s (+%s)\n%s", datos.Nombre, formato(valorActual), formato(ganado), ganancia)
+				end)
+			end
+		end
+
+		if lockPositivo and lockedCFrame then
+			local char = player.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				char.HumanoidRootPart.CFrame = lockedCFrame
+				char.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+				char.HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+			end
+		end
+
+		if abriendo and cristalSeleccionado and openCrystalRemote then
+			pcall(function() openCrystalRemote:InvokeServer("openCrystal", cristalSeleccionado, 1) end)
+		end
+
+		if autoEvolve and autoEvolveRemote then
+			pcall(function() autoEvolveRemote:InvokeServer() end)
+		end
+
+		if autoFastReps then
+			mantenerTool("Weight")
+			pcall(function() player.muscleEvent:FireServer("rep") end)
+		end
+
+		if autoPushups then
+			mantenerTool("Pushups")
+			pcall(function() player.muscleEvent:FireServer("rep") end)
+		end
+
+		if autoPunch then
+			mantenerTool("Punch")
+			pcall(function() player.muscleEvent:FireServer("rep") end)
+		end
+	end
+end)
+
+print("⚡ E&T Scripts Pro (Sin Auto Rebirth) cargado correctamente.")
